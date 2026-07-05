@@ -1280,11 +1280,11 @@ function imprimirReporte() {
    LLAMADA A LA API (Google Apps Script)
    ============================================================ */
 async function llamarAPI(payload, getParams) {
-  if (CONFIG.API_URL === 'https://script.google.com/macros/s/AKfycbw6O-KaEoIv8GVjnmAJgdVxn5J0T8TUwDSFppgzXbyxaKvyGOWgC7mqELiYRAmEiUyHtw/exec') {
+  if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('AQUI_VA_LA_URL') !== -1) {
     throw new Error('API_URL no configurada. Sigue las instrucciones para conectar con Google Sheets.');
   }
 
-let url = CONFIG.API_URL;
+  let url = CONFIG.API_URL;
 
   if (getParams) {
     url += '?action=' + getParams;
