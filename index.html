@@ -1280,11 +1280,11 @@ function imprimirReporte() {
    LLAMADA A LA API (Google Apps Script)
    ============================================================ */
 async function llamarAPI(payload, getParams) {
-  if (CONFIG.API_URL === 'AQUI_VA_LA_URL_DE_TU_APPS_SCRIPT') {
+  if (CONFIG.API_URL === 'https://script.google.com/macros/s/AKfycbw6O-KaEoIv8GVjnmAJgdVxn5J0T8TUwDSFppgzXbyxaKvyGOWgC7mqELiYRAmEiUyHtw/exec') {
     throw new Error('API_URL no configurada. Sigue las instrucciones para conectar con Google Sheets.');
   }
 
-  let url = CONFIG.API_URL;
+let url = CONFIG.API_URL;
 
   if (getParams) {
     url += '?action=' + getParams;
@@ -1292,9 +1292,11 @@ async function llamarAPI(payload, getParams) {
     return await response.json();
   }
 
+  url += '?';    // <<<--- LINEA AGREGADA (evita redirect CORS)
+
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain' },  // <<<--- CAMBIADO de application/json
     body: JSON.stringify(payload)
   });
 
