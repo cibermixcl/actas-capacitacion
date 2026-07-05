@@ -459,6 +459,7 @@ tr:hover td { background: #f8fafc; }
     <button class="tab-btn active" data-tab="firmar" onclick="switchTab('firmar')">✍ Firmar</button>
     <button class="tab-btn admin-only" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
     <button class="tab-btn admin-only" data-tab="reportes" onclick="switchTab('reportes')">📄 Reportes</button>
+    <button class="tab-btn admin-only" data-tab="ajustes" onclick="switchTab('ajustes')">⚙ Ajustes</button>
   </nav>
 
   <!-- ADMIN BAR (visible when logged in) -->
@@ -618,7 +619,7 @@ tr:hover td { background: #f8fafc; }
       <div class="declaration-box">
         <label>
           <input type="checkbox" id="parDeclaracion">
-          <span>
+          <span id="declaracionTexto">
             <strong>Declaración:</strong> Declaro que he recibido capacitación / inducción en los temas
             señalados según la <strong>Resolución CPLT N°80</strong>, y he sido orientado en los
             ítems de información correspondientes a mi departamento. Acepto que este registro
@@ -646,6 +647,7 @@ tr:hover td { background: #f8fafc; }
         <option value="todas">Todas las sesiones</option>
       </select>
       <button class="btn btn-success btn-sm" onclick="exportarExcel()">📥 Exportar Excel</button>
+      <button class="btn btn-warning btn-sm" onclick="generarListadoSesion()">📋 Listado grupal</button>
       <button class="btn btn-outline btn-sm" onclick="cargarDashboard()">🔄 Refrescar</button>
       <button class="btn btn-danger btn-sm" onclick="limpiarStorage()">🗑 Limpiar caché</button>
     </div>
@@ -675,6 +677,7 @@ tr:hover td { background: #f8fafc; }
         <option value="">— Selecciona un participante —</option>
       </select>
       <button class="btn btn-primary btn-sm" onclick="generarReporte()">📄 Ver reporte</button>
+      <button class="btn btn-success btn-sm" onclick="generarTodosReportes()">📄 Generar todos</button>
     </div>
 
     <div id="reportePreview" style="display:none; margin-top:16px;">
@@ -688,6 +691,47 @@ tr:hover td { background: #f8fafc; }
     </div>
 
     <div id="msgReportes" class="msg"></div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 5: AJUSTES (Admin) -->
+  <!-- ============================================================ -->
+  <section id="tab-ajustes" class="tab-content card">
+    <h3>⚙ Ajustes del Sistema</h3>
+    <p style="font-size:0.88rem; color:var(--text-light); margin-bottom:16px;">
+      Personaliza los textos que aparecen en los reportes, actas y listados. Los cambios se guardan automáticamente en tu navegador.
+    </p>
+
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Nombre de la municipalidad</label>
+        <input type="text" id="cfgNombreMunicipio" placeholder="Ej: Municipalidad de Catemu">
+      </div>
+      <div class="form-group full">
+        <label>Título del acta / reporte individual</label>
+        <input type="text" id="cfgTituloActa" placeholder="Ej: ACTA DE CAPACITACIÓN / INDUCCIÓN">
+      </div>
+      <div class="form-group full">
+        <label>Subtítulo del acta</label>
+        <input type="text" id="cfgSubtituloActa" placeholder="Ej: Ley de Transparencia — Resolución CPLT N°80">
+      </div>
+      <div class="form-group">
+        <label>Logo (texto o emoji)</label>
+        <input type="text" id="cfgLogo" placeholder="Ej: 🏛 o MUNICIPALIDAD">
+      </div>
+      <div class="form-group">
+        <label>Título del listado grupal</label>
+        <input type="text" id="cfgTituloListado" placeholder="Ej: LISTADO DE ASISTENCIA">
+      </div>
+      <div class="form-group full">
+        <label>Texto de declaración del participante</label>
+        <textarea id="cfgDeclaracion" rows="3" placeholder="Texto que aparece en el checkbox de firma..."></textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="guardarConfig()">💾 Guardar configuración</button>
+    <button class="btn btn-outline btn-sm" onclick="restablecerConfig()" style="margin-left:8px;">↻ Restablecer valores</button>
+    <div id="msgAjustes" class="msg" style="margin-top:12px;"></div>
   </section>
 
 </div>
@@ -726,7 +770,17 @@ const CONFIG = {
   ADMIN_PASSWORD: 'catemu2025',
 
   // Tema por defecto
-  DEFAULT_THEME: 'transparencia'
+  DEFAULT_THEME: 'transparencia',
+
+  // Valores por defecto para configuración del sistema
+  DEFAULT_CONFIG: {
+    nombreMunicipio: 'Municipalidad de Catemu',
+    tituloActa: 'ACTA DE CAPACITACIÓN / INDUCCIÓN',
+    subtituloActa: 'Ley de Transparencia — Resolución CPLT N°80',
+    logo: '🏛',
+    tituloListado: 'LISTADO DE ASISTENCIA',
+    declaracion: 'Declaro que he recibido capacitación / inducción en los temas señalados según la Resolución CPLT N°80, y he sido orientado en los ítems de información correspondientes a mi departamento. Acepto que este registro constituye mi firma electrónica y validación de la capacitación recibida.'
+  }
 };
 
 /* ============================================================
@@ -748,6 +802,16 @@ document.addEventListener('DOMContentLoaded', function () {
   // Fecha por defecto
   const hoy = new Date().toISOString().split('T')[0];
   document.getElementById('capFecha').value = hoy;
+
+  // Cargar configuración del sistema
+  cargarConfig();
+
+  // Actualizar texto de declaración
+  var cfg = obtenerConfig();
+  var decLabel = document.getElementById('declaracionTexto');
+  if (decLabel) {
+    decLabel.innerHTML = '<strong>Declaración:</strong> ' + escHtml(cfg.declaracion);
+  }
 
   // Cargar sesiones del caché
   const cached = localStorage.getItem(state.cacheKey);
@@ -1165,6 +1229,81 @@ async function cargarParticipantesReporte() {
   } catch (e) {}
 }
 
+/* ============================================================
+   REPORTES INDIVIDUALES
+   ============================================================ */
+function generarReporteHtml(p, sesion) {
+  if (!p) return '';
+  const cfg = obtenerConfig();
+  const fecha = p.Timestamp ? formatearFechaStr(p.Timestamp) : new Date().toLocaleDateString('es-CL');
+  const fechaSesion = sesion ? formatearFechaStr(sesion.Fecha) : fecha;
+
+  return '\n' +
+    '    <div style="font-family:\'Segoe UI\',sans-serif; max-width:700px; margin:0 auto; padding:20px; page-break-after:always;">\n' +
+    '      <div style="text-align:center; border-bottom:3px solid #1a3a5c; padding-bottom:16px; margin-bottom:20px;">\n' +
+    '        <div style="font-size:2rem;">' + escHtml(cfg.logo) + '</div>\n' +
+    '        <h2 style="color:#1a3a5c; margin:4px 0; font-size:1.3rem;">' + escHtml(cfg.nombreMunicipio) + '</h2>\n' +
+    '        <h3 style="color:#2d6da8; margin:4px 0; font-size:1rem; font-weight:400;">' + escHtml(cfg.tituloActa) + '</h3>\n' +
+    '        <p style="color:#6c7a89; font-size:0.85rem;">' + escHtml(cfg.subtituloActa) + '</p>\n' +
+    '      </div>\n' +
+    '\n' +
+    '      <table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:20px;">\n' +
+    '        <tr><td style="padding:6px 10px; font-weight:600; width:140px; border:1px solid #dce1e8;">Fecha</td>\n' +
+    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + fechaSesion + '</td></tr>\n' +
+    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Capacitador</td>\n' +
+    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + (sesion ? escHtml(sesion.Capacitador) : '—') + '</td></tr>\n' +
+    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Unidad capacitada</td>\n' +
+    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + (sesion ? escHtml(sesion.Unidad) : '—') + '</td></tr>\n' +
+    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Participante</td>\n' +
+    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.Nombre || '') + '</td></tr>\n' +
+    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">RUT</td>\n' +
+    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.RUT || '') + '</td></tr>\n' +
+    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Email</td>\n' +
+    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.Email || '') + '</td></tr>\n' +
+    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Unidad</td>\n' +
+    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.Unidad || '') + '</td></tr>\n' +
+    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Cargo</td>\n' +
+    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.Cargo || '') + '</td></tr>\n' +
+    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Código Sesión</td>\n' +
+    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.SessionCode || '') + '</td></tr>\n' +
+    '      </table>\n' +
+    '\n' +
+    '      <div style="margin-bottom:16px;">\n' +
+    '        <h4 style="color:#1a3a5c; font-size:0.95rem; margin-bottom:6px;">Temas abordados</h4>\n' +
+    '        <p style="font-size:0.88rem; padding:10px 14px; background:#f8f9fa; border-radius:4px;">\n' +
+    '          ' + (sesion ? escHtml(sesion.Temas || 'No especificados') : '—') + '\n' +
+    '        </p>\n' +
+    '      </div>\n' +
+    '\n' +
+    '      <div style="margin-bottom:16px;">\n' +
+    '        <h4 style="color:#1a3a5c; font-size:0.95rem; margin-bottom:6px;">Observaciones</h4>\n' +
+    '        <p style="font-size:0.88rem; padding:10px 14px; background:#f8f9fa; border-radius:4px;">\n' +
+    '          ' + (sesion ? escHtml(sesion.Observaciones || 'Sin observaciones') : '—') + '\n' +
+    '        </p>\n' +
+    '      </div>\n' +
+    '\n' +
+    '      <div style="background:#f0f7f0; border-left:4px solid #27ae60; padding:12px 16px; font-size:0.85rem; margin-bottom:24px;">\n' +
+    '        ✅ ' + escHtml(cfg.declaracion) + '\n' +
+    '      </div>\n' +
+    '\n' +
+    '      <div style="display:flex; justify-content:space-between; margin-top:40px; padding-top:20px; border-top:1px solid #dce1e8;">\n' +
+    '        <div style="text-align:center; flex:1;">\n' +
+    '          <div style="border-top:1px solid #333; width:80%; margin:0 auto 6px; padding-top:6px;">&nbsp;</div>\n' +
+    '          <p style="font-size:0.82rem; color:#6c7a89;">Firma Capacitador</p>\n' +
+    '        </div>\n' +
+    '        <div style="text-align:center; flex:1;">\n' +
+    '          <div style="border-top:1px solid #333; width:80%; margin:0 auto 6px; padding-top:6px;">&nbsp;</div>\n' +
+    '          <p style="font-size:0.82rem; color:#6c7a89;">Firma Participante</p>\n' +
+    '        </div>\n' +
+    '      </div>\n' +
+    '\n' +
+    '      <div style="text-align:center; margin-top:30px; font-size:0.72rem; color:#aaa;">\n' +
+    '        Documento generado electrónicamente el ' + new Date().toLocaleString('es-CL') + ' — Sistema de Registro de Capacitaciones\n' +
+    '      </div>\n' +
+    '    </div>\n' +
+    '  ';
+}
+
 function generarReporte() {
   const select = document.getElementById('filtroParticipante');
   const selectedOption = select.options[select.selectedIndex];
@@ -1185,95 +1324,229 @@ function generarReporte() {
     return;
   }
 
-  // Buscar datos de la sesión
   let sesion = null;
   (state.sesiones || []).forEach(function (s) {
     if (s.SessionCode === p.SessionCode) sesion = s;
   });
 
   mostrarMsg('msgReportes', '', '');
-
-  // Generar HTML del reporte
-  const fecha = p.Timestamp ? formatearFechaStr(p.Timestamp) : new Date().toLocaleDateString('es-CL');
-  const fechaSesion = sesion ? formatearFechaStr(sesion.Fecha) : fecha;
-
-  const html = `
-    <div style="font-family:'Segoe UI',sans-serif; max-width:700px; margin:0 auto; padding:20px;">
-      <div style="text-align:center; border-bottom:3px solid #1a3a5c; padding-bottom:16px; margin-bottom:20px;">
-        <div style="font-size:2rem;">🏛</div>
-        <h2 style="color:#1a3a5c; margin:4px 0; font-size:1.3rem;">MUNICIPALIDAD DE CATEMU</h2>
-        <h3 style="color:#2d6da8; margin:4px 0; font-size:1rem; font-weight:400;">ACTA DE CAPACITACIÓN / INDUCCIÓN</h3>
-        <p style="color:#6c7a89; font-size:0.85rem;">Ley de Transparencia — Resolución CPLT N°80</p>
-      </div>
-
-      <table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:20px;">
-        <tr><td style="padding:6px 10px; font-weight:600; width:140px; border:1px solid #dce1e8;">Fecha</td>
-            <td style="padding:6px 10px; border:1px solid #dce1e8;">${fechaSesion}</td></tr>
-        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Capacitador</td>
-            <td style="padding:6px 10px; border:1px solid #dce1e8;">${sesion ? escHtml(sesion.Capacitador) : '—'}</td></tr>
-        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Unidad capacitada</td>
-            <td style="padding:6px 10px; border:1px solid #dce1e8;">${sesion ? escHtml(sesion.Unidad) : '—'}</td></tr>
-        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Participante</td>
-            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.Nombre || '')}</td></tr>
-        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">RUT</td>
-            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.RUT || '')}</td></tr>
-        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Email</td>
-            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.Email || '')}</td></tr>
-        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Unidad</td>
-            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.Unidad || '')}</td></tr>
-        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Cargo</td>
-            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.Cargo || '')}</td></tr>
-        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Código Sesión</td>
-            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.SessionCode || '')}</td></tr>
-      </table>
-
-      <div style="margin-bottom:16px;">
-        <h4 style="color:#1a3a5c; font-size:0.95rem; margin-bottom:6px;">Temas abordados</h4>
-        <p style="font-size:0.88rem; padding:10px 14px; background:#f8f9fa; border-radius:4px;">
-          ${sesion ? escHtml(sesion.Temas || 'No especificados') : '—'}
-        </p>
-      </div>
-
-      <div style="margin-bottom:16px;">
-        <h4 style="color:#1a3a5c; font-size:0.95rem; margin-bottom:6px;">Observaciones</h4>
-        <p style="font-size:0.88rem; padding:10px 14px; background:#f8f9fa; border-radius:4px;">
-          ${sesion ? escHtml(sesion.Observaciones || 'Sin observaciones') : '—'}
-        </p>
-      </div>
-
-      <div style="background:#f0f7f0; border-left:4px solid #27ae60; padding:12px 16px; font-size:0.85rem; margin-bottom:24px;">
-        ✅ El participante declara haber recibido la capacitación / inducción en los temas señalados
-        conforme a la <strong>Resolución CPLT N°80</strong>, y haber sido orientado en los ítems de
-        información correspondientes a su departamento.
-      </div>
-
-      <div style="display:flex; justify-content:space-between; margin-top:40px; padding-top:20px; border-top:1px solid #dce1e8;">
-        <div style="text-align:center; flex:1;">
-          <div style="border-top:1px solid #333; width:80%; margin:0 auto 6px; padding-top:6px;">&nbsp;</div>
-          <p style="font-size:0.82rem; color:#6c7a89;">Firma Capacitador</p>
-        </div>
-        <div style="text-align:center; flex:1;">
-          <div style="border-top:1px solid #333; width:80%; margin:0 auto 6px; padding-top:6px;">&nbsp;</div>
-          <p style="font-size:0.82rem; color:#6c7a89;">Firma Participante</p>
-        </div>
-      </div>
-
-      <div style="text-align:center; margin-top:30px; font-size:0.72rem; color:#aaa;">
-        Documento generado electrónicamente el ${new Date().toLocaleString('es-CL')} — Sistema de Registro de Capacitaciones
-      </div>
-    </div>
-  `;
-
-  document.getElementById('reporteContenido').innerHTML = html;
+  document.getElementById('reporteContenido').innerHTML = generarReporteHtml(p, sesion);
   document.getElementById('reportePreview').style.display = 'block';
   document.getElementById('reportePreview').scrollIntoView({ behavior: 'smooth' });
 }
 
 function imprimirReporte() {
   const contenido = document.getElementById('reporteContenido').innerHTML;
-  const printArea = document.getElementById('printArea');
-  printArea.innerHTML = contenido;
+  document.getElementById('printArea').innerHTML = contenido;
   window.print();
+}
+
+async function generarTodosReportes() {
+  const filtro = document.getElementById('filtroSesionReporte').value;
+
+  if (!filtro || filtro === 'todas') {
+    mostrarMsg('msgReportes', 'Selecciona una sesión específica (no "Todas").', 'error');
+    return;
+  }
+
+  mostrarMsg('msgReportes', 'Generando reportes...', 'info');
+
+  let participantes = [];
+  try {
+    const data = await llamarAPI(null, 'obtenerParticipantes&sessionCode=' + encodeURIComponent(filtro));
+    if (data.success && Array.isArray(data.participantes)) {
+      participantes = data.participantes;
+    }
+  } catch (e) {
+    mostrarMsg('msgReportes', 'Error al obtener participantes: ' + e.message, 'error');
+    return;
+  }
+
+  if (participantes.length === 0) {
+    mostrarMsg('msgReportes', 'No hay participantes en esta sesión.', 'error');
+    return;
+  }
+
+  let sesion = null;
+  (state.sesiones || []).forEach(function (s) {
+    if (s.SessionCode === filtro) sesion = s;
+  });
+
+  var allHtml = '';
+  participantes.forEach(function (p) {
+    allHtml += generarReporteHtml(p, sesion);
+  });
+
+  document.getElementById('printArea').innerHTML = allHtml;
+  mostrarMsg('msgReportes', '✅ Generando ' + participantes.length + ' actas en PDF...', 'success');
+  setTimeout(function () { window.print(); }, 500);
+}
+
+function generarListadoSesion() {
+  var filtro = document.getElementById('filtroSesionDash').value;
+  var label = 'Sesión seleccionada';
+  var select = document.getElementById('filtroSesionDash');
+  if (select.selectedIndex >= 0) {
+    label = select.options[select.selectedIndex].textContent;
+  }
+
+  var participantes = state.participantes;
+
+  if (filtro !== 'todas') {
+    participantes = participantes.filter(function (p) { return p.SessionCode === filtro; });
+  }
+
+  if (participantes.length === 0) {
+    alert('No hay participantes para la sesión seleccionada.');
+    return;
+  }
+
+  var sesion = null;
+  if (filtro !== 'todas') {
+    (state.sesiones || []).forEach(function (s) {
+      if (s.SessionCode === filtro) sesion = s;
+    });
+  }
+
+  var cfg = obtenerConfig();
+  var capacita = sesion ? (sesion.Capacitador || '—') : '—';
+  var fecha = sesion ? formatearFechaStr(sesion.Fecha) : '—';
+  var unidad = sesion ? (sesion.Unidad || '—') : '—';
+  var temas = sesion ? (sesion.Temas || '—') : '—';
+
+  var rows = '';
+  participantes.forEach(function (p, i) {
+    var ts = p.Timestamp ? formatearFechaStr(p.Timestamp) : '—';
+    rows += '<tr>' +
+      '<td style="padding:6px 8px; text-align:center; border:1px solid #ccc;">' + (i + 1) + '</td>' +
+      '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(p.Nombre || '') + '</td>' +
+      '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(p.RUT || '') + '</td>' +
+      '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(p.Email || '') + '</td>' +
+      '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(p.Unidad || '') + '</td>' +
+      '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(p.Cargo || '') + '</td>' +
+      '<td style="padding:6px 8px; border:1px solid #ccc; white-space:nowrap;">' + ts + '</td>' +
+    '</tr>';
+  });
+
+  var html = '\n' +
+    '    <div style="font-family:\'Segoe UI\',sans-serif; max-width:1000px; margin:0 auto; padding:30px;">\n' +
+    '      <div style="text-align:center; border-bottom:3px solid #1a3a5c; padding-bottom:12px; margin-bottom:20px;">\n' +
+    '        <h2 style="color:#1a3a5c; margin:0; font-size:1.3rem;">' + escHtml(cfg.nombreMunicipio) + '</h2>\n' +
+    '        <h3 style="color:#2d6da8; margin:4px 0; font-size:1rem;">' + escHtml(cfg.tituloListado) + '</h3>\n' +
+    '        <p style="color:#6c7a89; font-size:0.85rem;">' + escHtml(cfg.subtituloActa) + '</p>\n' +
+    '      </div>\n' +
+    '\n' +
+    '      <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:16px;">\n' +
+    '        <tr><td style="font-weight:600; width:120px; padding:3px 6px;">Capacitador:</td><td style="padding:3px 6px;">' + escHtml(capacita) + '</td></tr>\n' +
+    '        <tr><td style="font-weight:600; padding:3px 6px;">Fecha:</td><td style="padding:3px 6px;">' + fecha + '</td></tr>\n' +
+    '        <tr><td style="font-weight:600; padding:3px 6px;">Unidad:</td><td style="padding:3px 6px;">' + escHtml(unidad) + '</td></tr>\n' +
+    '        <tr><td style="font-weight:600; padding:3px 6px;">Temas:</td><td style="padding:3px 6px;">' + escHtml(temas) + '</td></tr>\n' +
+    '      </table>\n' +
+    '\n' +
+    '      <table style="width:100%; border-collapse:collapse; font-size:0.82rem;" border="1">\n' +
+    '        <thead>\n' +
+    '          <tr style="background:#1a3a5c; color:#fff;">\n' +
+    '            <th style="padding:8px 6px; text-align:center;">N°</th>\n' +
+    '            <th style="padding:8px 6px; text-align:left;">Nombre</th>\n' +
+    '            <th style="padding:8px 6px; text-align:left;">RUT</th>\n' +
+    '            <th style="padding:8px 6px; text-align:left;">Email</th>\n' +
+    '            <th style="padding:8px 6px; text-align:left;">Unidad</th>\n' +
+    '            <th style="padding:8px 6px; text-align:left;">Cargo</th>\n' +
+    '            <th style="padding:8px 6px; text-align:center;">Fecha/Hora Firma</th>\n' +
+    '          </tr>\n' +
+    '        </thead>\n' +
+    '        <tbody>\n' +
+    '          ' + rows + '\n' +
+    '        </tbody>\n' +
+    '      </table>\n' +
+    '\n' +
+    '      <p style="margin-top:12px; font-size:0.85rem;"><strong>Total participantes:</strong> ' + participantes.length + '</p>\n' +
+    '\n' +
+    '      <div style="display:flex; justify-content:space-between; margin-top:40px; padding-top:16px; border-top:1px solid #333;">\n' +
+    '        <div style="text-align:center; flex:1;">\n' +
+    '          <div style="border-top:1px solid #333; width:70%; margin:0 auto 6px; padding-top:4px;">&nbsp;</div>\n' +
+    '          <p style="font-size:0.8rem; color:#666;">Firma Capacitador</p>\n' +
+    '        </div>\n' +
+    '        <div style="text-align:center; flex:1;">\n' +
+    '          <div style="border-top:1px solid #333; width:70%; margin:0 auto 6px; padding-top:4px;">&nbsp;</div>\n' +
+    '          <p style="font-size:0.8rem; color:#666;">Firma Jefe de Unidad</p>\n' +
+    '        </div>\n' +
+    '      </div>\n' +
+    '\n' +
+    '      <div style="text-align:center; margin-top:24px; font-size:0.7rem; color:#999;">\n' +
+    '        Documento generado electrónicamente el ' + new Date().toLocaleString('es-CL') + '\n' +
+    '      </div>\n' +
+    '    </div>\n' +
+    '  ';
+
+  document.getElementById('printArea').innerHTML = html;
+  window.print();
+}
+
+/* ============================================================
+   CONFIGURACIÓN DEL SISTEMA
+   ============================================================ */
+function obtenerConfig() {
+  var cfg = localStorage.getItem('cap_config_sistema');
+  if (cfg) {
+    try {
+      var parsed = JSON.parse(cfg);
+      // Merge con valores por defecto
+      var claves = Object.keys(CONFIG.DEFAULT_CONFIG);
+      for (var i = 0; i < claves.length; i++) {
+        if (parsed[claves[i]] === undefined || parsed[claves[i]] === '') {
+          parsed[claves[i]] = CONFIG.DEFAULT_CONFIG[claves[i]];
+        }
+      }
+      return parsed;
+    } catch (e) {}
+  }
+  return Object.assign({}, CONFIG.DEFAULT_CONFIG);
+}
+
+function cargarConfig() {
+  var cfg = obtenerConfig();
+  var ids = ['cfgNombreMunicipio', 'cfgTituloActa', 'cfgSubtituloActa', 'cfgLogo', 'cfgTituloListado', 'cfgDeclaracion'];
+  var keys = ['nombreMunicipio', 'tituloActa', 'subtituloActa', 'logo', 'tituloListado', 'declaracion'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    if (el) el.value = cfg[keys[i]] || '';
+  }
+}
+
+function guardarConfig() {
+  var cfg = {
+    nombreMunicipio: document.getElementById('cfgNombreMunicipio').value.trim(),
+    tituloActa: document.getElementById('cfgTituloActa').value.trim(),
+    subtituloActa: document.getElementById('cfgSubtituloActa').value.trim(),
+    logo: document.getElementById('cfgLogo').value.trim(),
+    tituloListado: document.getElementById('cfgTituloListado').value.trim(),
+    declaracion: document.getElementById('cfgDeclaracion').value.trim()
+  };
+
+  localStorage.setItem('cap_config_sistema', JSON.stringify(cfg));
+
+  var msg = document.getElementById('msgAjustes');
+  if (msg) {
+    msg.className = 'msg success';
+    msg.textContent = '✅ Configuración guardada correctamente.';
+  }
+
+  // Actualizar texto de declaración en el formulario de firma
+  var decLabel = document.getElementById('declaracionTexto');
+  if (decLabel) {
+    decLabel.innerHTML = '<strong>Declaración:</strong> ' + escHtml(cfg.declaracion);
+  }
+}
+
+function restablecerConfig() {
+  localStorage.removeItem('cap_config_sistema');
+  cargarConfig();
+  var msg = document.getElementById('msgAjustes');
+  if (msg) {
+    msg.className = 'msg success';
+    msg.textContent = '✅ Valores restablecidos a los originales.';
+  }
 }
 
 /* ============================================================
