@@ -6,6 +6,8 @@
 <title>Registro Capacitaciones - Transparencia Activa</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js">
+</script>
 <style>
 :root {
   --primary: #1a3a5c;
@@ -347,7 +349,7 @@ tr:hover td { background: #f8fafc; }
   right: 0;
   bottom: 0;
   background: rgba(0,0,0,0.6);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 1000;
@@ -427,16 +429,10 @@ tr:hover td { background: #f8fafc; }
   display: none;
 }
 @media print {
-  body * { visibility: hidden; }
-  #printArea, #printArea * { visibility: visible; }
+  body > *:not(#printArea) { display: none !important; }
   #printArea {
     display: block !important;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
     background: #fff;
-    padding: 0;
   }
 }
 </style>
@@ -446,7 +442,8 @@ tr:hover td { background: #f8fafc; }
 <div class="container" id="app">
 
   <!-- HEADER -->
-  <header class="header">
+  <header class="header" style="position:relative;">
+    <button onclick="mostrarLoginAdmin()" style="position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3); padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer; font-family:inherit;">🔐 Admin</button>
     <div class="shield">🏛</div>
     <h1>Municipalidad de Catemu</h1>
     <h2>Sistema de Registro de Capacitaciones</h2>
@@ -494,7 +491,7 @@ tr:hover td { background: #f8fafc; }
     </div>
 
     <div class="form-group" style="margin-top:12px;">
-      <label style="margin-bottom:8px;">Temas abordados (Res. CPLT N°80) *</label>
+      <label style="margin-bottom:8px;">Temas abordados *</label>
       <div class="checkbox-group" id="temasContainer">
         <div class="checkbox-item">
           <input type="checkbox" id="t1" value="Actos y resoluciones con efectos sobre terceros">
@@ -536,6 +533,22 @@ tr:hover td { background: #f8fafc; }
           <input type="checkbox" id="t10" value="Información adicional">
           <label for="t10">10. Información adicional</label>
         </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t11" value="Ley de Transparencia">
+          <label for="t11">11. Ley de Transparencia</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t12" value="Protección de datos personales">
+          <label for="t12">12. Protección de datos personales</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t13" value="Recursos Humanos">
+          <label for="t13">13. Recursos Humanos</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t14" value="Otros">
+          <label for="t14">14. Otros</label>
+        </div>
       </div>
     </div>
 
@@ -554,6 +567,7 @@ tr:hover td { background: #f8fafc; }
       <p style="font-size:0.9rem; color:var(--text-light); margin-bottom:4px;">✅ Sesión creada exitosamente</p>
       <p style="font-weight:600;">Comparte este código con los participantes:</p>
       <div class="session-badge" id="codigoSesion"></div>
+      <div id="qrcodeContainer" style="display:block; margin:12px auto; padding:12px; background:#fff; border-radius:8px; width:fit-content;"></div>
       <p style="font-size:0.82rem; color:var(--text-light); margin-top:8px;">
         Los participantes deben ingresar este código en la pestaña <strong>"Firmar"</strong> para registrarse.
       </p>
@@ -627,6 +641,8 @@ tr:hover td { background: #f8fafc; }
           </span>
         </label>
       </div>
+
+      <div id="textoProteccionDatos" style="display:none; font-size:0.82rem; color:#555; background:#f8f9fa; padding:12px 16px; border-radius:6px; margin:12px 0; line-height:1.5; border-left:3px solid #2d6da8;"></div>
 
       <button class="btn btn-success" onclick="registrarParticipante()" id="btnFirmar">
         ✍ Firmar y enviar
@@ -716,8 +732,13 @@ tr:hover td { background: #f8fafc; }
         <input type="text" id="cfgSubtituloActa" placeholder="Ej: Ley de Transparencia — Resolución CPLT N°80">
       </div>
       <div class="form-group">
-        <label>Logo (texto o emoji)</label>
+        <label>Logo (texto, emoji o imagen)</label>
         <input type="text" id="cfgLogo" placeholder="Ej: 🏛 o MUNICIPALIDAD">
+        <div style="font-size:0.78rem; color:var(--text-light); margin-top:2px;">
+          También puedes <a href="#" onclick="subirLogoImagen(); return false;">subir una imagen</a>
+        </div>
+        <div id="cfgLogoPreview" style="margin-top:4px;"></div>
+        <input type="file" id="cfgLogoFileInput" accept="image/*" style="display:none;" onchange="procesarLogoImagen(event)">
       </div>
       <div class="form-group">
         <label>Título del listado grupal</label>
@@ -726,6 +747,14 @@ tr:hover td { background: #f8fafc; }
       <div class="form-group full">
         <label>Texto de declaración del participante</label>
         <textarea id="cfgDeclaracion" rows="3" placeholder="Texto que aparece en el checkbox de firma..."></textarea>
+      </div>
+      <div class="form-group full">
+        <label>Firma del capacitador (imagen JPG, PNG o GIF)</label>
+        <input type="file" id="cfgFirmaFileInput" accept="image/jpeg,image/png,image/gif" onchange="procesarFirmaImagen(event)">
+        <div style="font-size:0.78rem; color:var(--text-light); margin-top:2px;">
+          La imagen aparecerá en los reportes y listados. Máximo 500 KB recomendado.
+        </div>
+        <div id="cfgFirmaPreview" style="margin-top:4px;"></div>
       </div>
     </div>
 
@@ -753,7 +782,7 @@ tr:hover td { background: #f8fafc; }
     </p>
     <input type="password" id="adminPassInput" placeholder="Contraseña" onkeydown="if(event.key==='Enter')loginAdmin()">
     <button class="btn btn-primary" onclick="loginAdmin()" style="width:100%; justify-content:center;">Ingresar</button>
-    <button class="btn btn-outline btn-sm" onclick="cerrarLoginAdmin()" style="width:100%; justify-content:center; margin-top:8px;">Soy participante — solo quiero firmar</button>
+    <button class="btn btn-outline btn-sm" onclick="cerrarLoginAdmin()" style="width:100%; justify-content:center; margin-top:8px;">Cancelar</button>
     <div id="msgAdminLogin" class="msg" style="margin-top:8px;"></div>
   </div>
 </div>
@@ -764,7 +793,7 @@ tr:hover td { background: #f8fafc; }
    ============================================================ */
 const CONFIG = {
   // ★ CAMBIA ESTA URL por la que obtienes al publicar el Apps Script
-  API_URL: 'https://script.google.com/macros/s/AKfycbw6O-KaEoIv8GVjnmAJgdVxn5J0T8TUwDSFppgzXbyxaKvyGOWgC7mqELiYRAmEiUyHtw/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbzqy0puCbHwHwnt6Fmyu6esNA3W3nvkkLJnWjKgDWl4YGC3VGOa-MD0X66SDC2Shqz5HA/exec',
 
   // ★ Contraseña para modo administrador
   ADMIN_PASSWORD: 'catemu2025',
@@ -779,7 +808,8 @@ const CONFIG = {
     subtituloActa: 'Ley de Transparencia — Resolución CPLT N°80',
     logo: '🏛',
     tituloListado: 'LISTADO DE ASISTENCIA',
-    declaracion: 'Declaro que he recibido capacitación / inducción en los temas señalados según la Resolución CPLT N°80, y he sido orientado en los ítems de información correspondientes a mi departamento. Acepto que este registro constituye mi firma electrónica y validación de la capacitación recibida.'
+    declaracion: 'Declaro que he recibido capacitación / inducción en los temas señalados según la Resolución CPLT N°80, y he sido orientado en los ítems de información correspondientes a mi departamento. Acepto que este registro constituye mi firma electrónica y validación de la capacitación recibida.',
+    firmaCapacitador: ''
   }
 };
 
@@ -819,6 +849,18 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       state.sesiones = JSON.parse(cached);
     } catch (e) { state.sesiones = []; }
+  }
+
+  // Detectar ?codigo= en la URL para auto-completar firma
+  var params = new URLSearchParams(window.location.search);
+  var codigoUrl = params.get('codigo');
+  if (codigoUrl) {
+    var input = document.getElementById('codigoSesionInput');
+    if (input) {
+      input.value = codigoUrl.toUpperCase();
+      switchTab('firmar');
+      setTimeout(function () { buscarSesion(); }, 500);
+    }
   }
 });
 
@@ -929,6 +971,12 @@ async function crearSesion() {
       document.getElementById('resultadoSesion').style.display = 'block';
       mostrarMsg('msgConfigurar', 'Sesión creada exitosamente. Código: ' + codigo, 'success');
 
+      // Generar QR
+      var qrContainer = document.getElementById('qrcodeContainer');
+      qrContainer.innerHTML = '';
+      var urlFirma = window.location.origin + window.location.pathname.replace(/\/$/, '') + '?codigo=' + encodeURIComponent(codigo);
+      new QRCode(qrContainer, { text: urlFirma, width: 140, height: 140 });
+
       // Limpiar formulario
       document.getElementById('capCapacitador').value = '';
       document.getElementById('capUnidad').value = '';
@@ -993,6 +1041,13 @@ async function buscarSesion() {
     document.getElementById('detUnidad').textContent = sesion.Unidad;
     document.getElementById('detTemas').textContent = sesion.Temas || 'No especificados';
 
+    // Mostrar texto de protección de datos
+    var cfgMun = obtenerConfig();
+    var nomMun = cfgMun.nombreMunicipio || 'la Municipalidad';
+    document.getElementById('textoProteccionDatos').innerHTML =
+      '🔒 <strong>Protección de datos:</strong> Los datos solicitados (RUT, Nombre, Área y Correo Electrónico) serán tratados con la única finalidad de registrar su asistencia y validar su identidad para la Inducción de <strong>' + escHtml(sesion.Temas || 'los temas') + ' - ' + escHtml(sesion.Unidad || 'su unidad') + '</strong> de <strong>' + escHtml(nomMun) + '</strong>. Esta información será almacenada de forma segura y solo se utilizará para fines de control institucional.';
+    document.getElementById('textoProteccionDatos').style.display = 'block';
+
     document.getElementById('detalleSesion').style.display = 'block';
     mostrarMsg('msgBuscarSesion', 'Sesión encontrada. Completa tus datos para firmar.', 'success');
 
@@ -1055,7 +1110,7 @@ async function registrarParticipante() {
 
     // Éxito
     mostrarMsg('msgFirmar',
-      '✅ ¡Registro exitoso! ' + nombre + ', tu participación ha sido registrada correctamente.',
+      '✅ ¡Registro exitoso! ' + nombre + ', tu participación ha sido registrada correctamente. 📧 Se ha enviado una copia a tu correo.',
       'success');
 
     // Limpiar formulario
@@ -1239,65 +1294,57 @@ function generarReporteHtml(p, sesion) {
   const fechaSesion = sesion ? formatearFechaStr(sesion.Fecha) : fecha;
 
   return '\n' +
-    '    <div style="font-family:\'Segoe UI\',sans-serif; max-width:700px; margin:0 auto; padding:20px; page-break-after:always;">\n' +
-    '      <div style="text-align:center; border-bottom:3px solid #1a3a5c; padding-bottom:16px; margin-bottom:20px;">\n' +
-    '        <div style="font-size:2rem;">' + escHtml(cfg.logo) + '</div>\n' +
-    '        <h2 style="color:#1a3a5c; margin:4px 0; font-size:1.3rem;">' + escHtml(cfg.nombreMunicipio) + '</h2>\n' +
-    '        <h3 style="color:#2d6da8; margin:4px 0; font-size:1rem; font-weight:400;">' + escHtml(cfg.tituloActa) + '</h3>\n' +
-    '        <p style="color:#6c7a89; font-size:0.85rem;">' + escHtml(cfg.subtituloActa) + '</p>\n' +
+    '    <div style="font-family:\'Segoe UI\',sans-serif; max-width:700px; margin:0 auto; padding:15px;">\n' +
+    '      <div style="text-align:center; border-bottom:3px solid #1a3a5c; padding-bottom:10px; margin-bottom:12px;">\n' +
+    '        <div style="font-size:2rem;">' + (cfg.logo && cfg.logo.indexOf('data:image/') === 0 ? '<img src="' + cfg.logo + '" style="max-height:50px;" alt="Logo municipalidad">' : escHtml(cfg.logo)) + '</div>\n' +
+    '        <h2 style="color:#1a3a5c; margin:2px 0; font-size:1.2rem;">' + escHtml(cfg.nombreMunicipio) + '</h2>\n' +
+    '        <h3 style="color:#2d6da8; margin:2px 0; font-size:0.95rem; font-weight:400;">' + escHtml(cfg.tituloActa) + '</h3>\n' +
+    '        <p style="color:#6c7a89; font-size:0.8rem;">' + escHtml(cfg.subtituloActa) + '</p>\n' +
     '      </div>\n' +
     '\n' +
-    '      <table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:20px;">\n' +
-    '        <tr><td style="padding:6px 10px; font-weight:600; width:140px; border:1px solid #dce1e8;">Fecha</td>\n' +
-    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + fechaSesion + '</td></tr>\n' +
-    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Capacitador</td>\n' +
-    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + (sesion ? escHtml(sesion.Capacitador) : '—') + '</td></tr>\n' +
-    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Unidad capacitada</td>\n' +
-    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + (sesion ? escHtml(sesion.Unidad) : '—') + '</td></tr>\n' +
-    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Participante</td>\n' +
-    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.Nombre || '') + '</td></tr>\n' +
-    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">RUT</td>\n' +
-    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.RUT || '') + '</td></tr>\n' +
-    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Email</td>\n' +
-    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.Email || '') + '</td></tr>\n' +
-    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Unidad</td>\n' +
-    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.Unidad || '') + '</td></tr>\n' +
-    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Cargo</td>\n' +
-    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.Cargo || '') + '</td></tr>\n' +
-    '        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Código Sesión</td>\n' +
-    '            <td style="padding:6px 10px; border:1px solid #dce1e8;">' + escHtml(p.SessionCode || '') + '</td></tr>\n' +
+    '      <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:12px;">\n' +
+    '        <tr><td style="padding:4px 8px; font-weight:600; width:140px; border:1px solid #dce1e8;">Fecha</td>\n' +
+    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + fechaSesion + '</td></tr>\n' +
+    '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Capacitador</td>\n' +
+    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(sesion.Capacitador) : '—') + '</td></tr>\n' +
+    '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Unidad capacitada</td>\n' +
+    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(sesion.Unidad) : '—') + '</td></tr>\n' +
+    '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Participante</td>\n' +
+    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + escHtml(p.Nombre || '') + '</td></tr>\n' +
+    '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">RUT</td>\n' +
+    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + escHtml(p.RUT || '') + '</td></tr>\n' +
+    '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Email</td>\n' +
+    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + escHtml(p.Email || '') + '</td></tr>\n' +
+    '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Unidad</td>\n' +
+    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + escHtml(p.Unidad || '') + '</td></tr>\n' +
+    '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Cargo</td>\n' +
+    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + escHtml(p.Cargo || '') + '</td></tr>\n' +
+    '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Código Sesión</td>\n' +
+    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + escHtml(p.SessionCode || '') + '</td></tr>\n' +
     '      </table>\n' +
     '\n' +
-    '      <div style="margin-bottom:16px;">\n' +
-    '        <h4 style="color:#1a3a5c; font-size:0.95rem; margin-bottom:6px;">Temas abordados</h4>\n' +
-    '        <p style="font-size:0.88rem; padding:10px 14px; background:#f8f9fa; border-radius:4px;">\n' +
+    '      <div style="margin-bottom:10px;">\n' +
+    '        <h4 style="color:#1a3a5c; font-size:0.9rem; margin-bottom:4px;">Temas abordados</h4>\n' +
+    '        <p style="font-size:0.85rem; padding:6px 10px; background:#f8f9fa; border-radius:4px;">\n' +
     '          ' + (sesion ? escHtml(sesion.Temas || 'No especificados') : '—') + '\n' +
     '        </p>\n' +
     '      </div>\n' +
     '\n' +
-    '      <div style="margin-bottom:16px;">\n' +
-    '        <h4 style="color:#1a3a5c; font-size:0.95rem; margin-bottom:6px;">Observaciones</h4>\n' +
-    '        <p style="font-size:0.88rem; padding:10px 14px; background:#f8f9fa; border-radius:4px;">\n' +
+    '      <div style="margin-bottom:10px;">\n' +
+    '        <h4 style="color:#1a3a5c; font-size:0.9rem; margin-bottom:4px;">Observaciones</h4>\n' +
+    '        <p style="font-size:0.85rem; padding:6px 10px; background:#f8f9fa; border-radius:4px;">\n' +
     '          ' + (sesion ? escHtml(sesion.Observaciones || 'Sin observaciones') : '—') + '\n' +
     '        </p>\n' +
     '      </div>\n' +
     '\n' +
-    '      <div style="background:#f0f7f0; border-left:4px solid #27ae60; padding:12px 16px; font-size:0.85rem; margin-bottom:24px;">\n' +
+    '      <div style="background:#f0f7f0; border-left:4px solid #27ae60; padding:8px 12px; font-size:0.85rem; margin-bottom:4px;">\n' +
     '        ✅ ' + escHtml(cfg.declaracion) + '\n' +
     '      </div>\n' +
+    '      <p style="font-size:0.78rem; color:#555; text-align:right; margin-bottom:10px;">\n' +
+    '        Firmado por el funcionario individualizado bajo declaración el ' + formatearFechaStr(p.Timestamp) + '\n' +
+    '      </p>\n' +
     '\n' +
-    '      <div style="display:flex; justify-content:space-between; margin-top:40px; padding-top:20px; border-top:1px solid #dce1e8;">\n' +
-    '        <div style="text-align:center; flex:1;">\n' +
-    '          <div style="border-top:1px solid #333; width:80%; margin:0 auto 6px; padding-top:6px;">&nbsp;</div>\n' +
-    '          <p style="font-size:0.82rem; color:#6c7a89;">Firma Capacitador</p>\n' +
-    '        </div>\n' +
-    '        <div style="text-align:center; flex:1;">\n' +
-    '          <div style="border-top:1px solid #333; width:80%; margin:0 auto 6px; padding-top:6px;">&nbsp;</div>\n' +
-    '          <p style="font-size:0.82rem; color:#6c7a89;">Firma Participante</p>\n' +
-    '        </div>\n' +
-    '      </div>\n' +
-    '\n' +
-    '      <div style="text-align:center; margin-top:30px; font-size:0.72rem; color:#aaa;">\n' +
+    '      <div style="text-align:center; margin-top:15px; font-size:0.72rem; color:#aaa;">\n' +
     '        Documento generado electrónicamente el ' + new Date().toLocaleString('es-CL') + ' — Sistema de Registro de Capacitaciones\n' +
     '      </div>\n' +
     '    </div>\n' +
@@ -1373,8 +1420,8 @@ async function generarTodosReportes() {
   });
 
   var allHtml = '';
-  participantes.forEach(function (p) {
-    allHtml += generarReporteHtml(p, sesion);
+  participantes.forEach(function (p, i) {
+    allHtml += '<div style="page-break-after:' + (i < participantes.length - 1 ? 'always' : 'avoid') + ';">' + generarReporteHtml(p, sesion) + '</div>';
   });
 
   document.getElementById('printArea').innerHTML = allHtml;
@@ -1464,11 +1511,12 @@ function generarListadoSesion() {
     '\n' +
     '      <div style="display:flex; justify-content:space-between; margin-top:40px; padding-top:16px; border-top:1px solid #333;">\n' +
     '        <div style="text-align:center; flex:1;">\n' +
-    '          <div style="border-top:1px solid #333; width:70%; margin:0 auto 6px; padding-top:4px;">&nbsp;</div>\n' +
+    '          ' + (cfg.firmaCapacitador ? '<img src="' + cfg.firmaCapacitador + '" style="max-height:50px; max-width:180px; display:block; margin:0 auto 4px;" alt="Firma Capacitador">' : '') + '\n' +
+    '          <div style="border-top:1px solid #333; width:70%; margin:0 auto 6px;">&nbsp;</div>\n' +
     '          <p style="font-size:0.8rem; color:#666;">Firma Capacitador</p>\n' +
     '        </div>\n' +
     '        <div style="text-align:center; flex:1;">\n' +
-    '          <div style="border-top:1px solid #333; width:70%; margin:0 auto 6px; padding-top:4px;">&nbsp;</div>\n' +
+    '          <div style="border-top:1px solid #333; width:70%; margin:0 auto 6px;">&nbsp;</div>\n' +
     '          <p style="font-size:0.8rem; color:#666;">Firma Jefe de Unidad</p>\n' +
     '        </div>\n' +
     '      </div>\n' +
@@ -1512,16 +1560,28 @@ function cargarConfig() {
     var el = document.getElementById(ids[i]);
     if (el) el.value = cfg[keys[i]] || '';
   }
+  // Mostrar preview del logo si es imagen
+  if (cfg.logo && cfg.logo.indexOf('data:image/') === 0) {
+    var prev = document.getElementById('cfgLogoPreview');
+    if (prev) prev.innerHTML = '<img src="' + cfg.logo + '" style="max-height:60px; border:1px solid #dce1e8; border-radius:4px; padding:2px;" alt="Logo">';
+  }
+  // Mostrar preview de la firma
+  if (cfg.firmaCapacitador) {
+    var prev = document.getElementById('cfgFirmaPreview');
+    if (prev) prev.innerHTML = '<img src="' + cfg.firmaCapacitador + '" style="max-height:50px; border:1px solid #dce1e8; border-radius:4px; padding:2px;" alt="Firma">';
+  }
 }
 
 function guardarConfig() {
+  var prevCfg = obtenerConfig();
   var cfg = {
     nombreMunicipio: document.getElementById('cfgNombreMunicipio').value.trim(),
     tituloActa: document.getElementById('cfgTituloActa').value.trim(),
     subtituloActa: document.getElementById('cfgSubtituloActa').value.trim(),
     logo: document.getElementById('cfgLogo').value.trim(),
     tituloListado: document.getElementById('cfgTituloListado').value.trim(),
-    declaracion: document.getElementById('cfgDeclaracion').value.trim()
+    declaracion: document.getElementById('cfgDeclaracion').value.trim(),
+    firmaCapacitador: prevCfg.firmaCapacitador || ''
   };
 
   localStorage.setItem('cap_config_sistema', JSON.stringify(cfg));
@@ -1547,6 +1607,54 @@ function restablecerConfig() {
     msg.className = 'msg success';
     msg.textContent = '✅ Valores restablecidos a los originales.';
   }
+}
+
+function subirLogoImagen() {
+  document.getElementById('cfgLogoFileInput').click();
+}
+
+function procesarLogoImagen(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 1024 * 1024) {
+    alert('La imagen es muy grande. Máximo 1 MB.');
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    var dataUrl = e.target.result;
+    document.getElementById('cfgLogo').value = dataUrl;
+    var prev = document.getElementById('cfgLogoPreview');
+    prev.innerHTML = '<img src="' + dataUrl + '" style="max-height:60px; border:1px solid #dce1e8; border-radius:4px; padding:2px;" alt="Logo">';
+    // Guardar automáticamente
+    guardarConfig();
+  };
+  reader.readAsDataURL(file);
+}
+
+function procesarFirmaImagen(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 1024 * 1024) {
+    alert('La imagen es muy grande. Máximo 1 MB.');
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    var dataUrl = e.target.result;
+    var prev = document.getElementById('cfgFirmaPreview');
+    if (prev) prev.innerHTML = '<img src="' + dataUrl + '" style="max-height:50px; border:1px solid #dce1e8; border-radius:4px; padding:2px;" alt="Firma">';
+    // Guardar en localStorage
+    var cfg = obtenerConfig();
+    cfg.firmaCapacitador = dataUrl;
+    localStorage.setItem('cap_config_sistema', JSON.stringify(cfg));
+    var msg = document.getElementById('msgAjustes');
+    if (msg) {
+      msg.className = 'msg success';
+      msg.textContent = '✅ Firma del capacitador guardada.';
+    }
+  };
+  reader.readAsDataURL(file);
 }
 
 /* ============================================================
@@ -1616,8 +1724,9 @@ function formatearFechaStr(fechaStr) {
     var d = new Date(fechaStr);
     if (isNaN(d.getTime())) return fechaStr;
     return d.toLocaleDateString('es-CL', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit'
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    }) + ' ' + d.toLocaleTimeString('es-CL', {
+      hour: '2-digit', minute: '2-digit', hour12: false
     });
   } catch (e) {
     return fechaStr;
