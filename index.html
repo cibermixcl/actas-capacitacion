@@ -748,14 +748,6 @@ tr:hover td { background: #f8fafc; }
         <label>Texto de declaración del participante</label>
         <textarea id="cfgDeclaracion" rows="3" placeholder="Texto que aparece en el checkbox de firma..."></textarea>
       </div>
-      <div class="form-group full">
-        <label>Firma del capacitador (imagen JPG, PNG o GIF)</label>
-        <input type="file" id="cfgFirmaFileInput" accept="image/jpeg,image/png,image/gif" onchange="procesarFirmaImagen(event)">
-        <div style="font-size:0.78rem; color:var(--text-light); margin-top:2px;">
-          La imagen aparecerá en los reportes y listados. Máximo 500 KB recomendado.
-        </div>
-        <div id="cfgFirmaPreview" style="margin-top:4px;"></div>
-      </div>
     </div>
 
     <button class="btn btn-primary" onclick="guardarConfig()">💾 Guardar configuración</button>
@@ -808,8 +800,7 @@ const CONFIG = {
     subtituloActa: 'Ley de Transparencia — Resolución CPLT N°80',
     logo: '🏛',
     tituloListado: 'LISTADO DE ASISTENCIA',
-    declaracion: 'Declaro que he recibido capacitación / inducción en los temas señalados según la Resolución CPLT N°80, y he sido orientado en los ítems de información correspondientes a mi departamento. Acepto que este registro constituye mi firma electrónica y validación de la capacitación recibida.',
-    firmaCapacitador: ''
+    declaracion: 'Declaro que he recibido capacitación / inducción en los temas señalados según la Resolución CPLT N°80, y he sido orientado en los ítems de información correspondientes a mi departamento. Acepto que este registro constituye mi firma electrónica y validación de la capacitación recibida.'
   }
 };
 
@@ -1467,8 +1458,8 @@ function generarListadoSesion() {
     rows += '<tr>' +
       '<td style="padding:6px 8px; text-align:center; border:1px solid #ccc;">' + (i + 1) + '</td>' +
       '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(p.Nombre || '') + '</td>' +
-      '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(p.RUT || '') + '</td>' +
-      '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(p.Email || '') + '</td>' +
+      '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(enmascararRUT(p.RUT || '')) + '</td>' +
+      '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(enmascararEmail(p.Email || '')) + '</td>' +
       '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(p.Unidad || '') + '</td>' +
       '<td style="padding:6px 8px; border:1px solid #ccc;">' + escHtml(p.Cargo || '') + '</td>' +
       '<td style="padding:6px 8px; border:1px solid #ccc; white-space:nowrap;">' + ts + '</td>' +
@@ -1505,27 +1496,24 @@ function generarListadoSesion() {
     '        <tbody>\n' +
     '          ' + rows + '\n' +
     '        </tbody>\n' +
-    '      </table>\n' +
-    '\n' +
-    '      <p style="margin-top:12px; font-size:0.85rem;"><strong>Total participantes:</strong> ' + participantes.length + '</p>\n' +
-    '\n' +
-    '      <div style="display:flex; justify-content:space-between; margin-top:40px; padding-top:16px; border-top:1px solid #333;">\n' +
-    '        <div style="text-align:center; flex:1;">\n' +
-    '          ' + (cfg.firmaCapacitador ? '<img src="' + cfg.firmaCapacitador + '" style="max-height:50px; max-width:180px; display:block; margin:0 auto 4px;" alt="Firma Capacitador">' : '') + '\n' +
-    '          <div style="border-top:1px solid #333; width:70%; margin:0 auto 6px;">&nbsp;</div>\n' +
-    '          <p style="font-size:0.8rem; color:#666;">Firma Capacitador</p>\n' +
-    '        </div>\n' +
-    '        <div style="text-align:center; flex:1;">\n' +
-    '          <div style="border-top:1px solid #333; width:70%; margin:0 auto 6px;">&nbsp;</div>\n' +
-    '          <p style="font-size:0.8rem; color:#666;">Firma Jefe de Unidad</p>\n' +
-    '        </div>\n' +
-    '      </div>\n' +
-    '\n' +
-    '      <div style="text-align:center; margin-top:24px; font-size:0.7rem; color:#999;">\n' +
-    '        Documento generado electrónicamente el ' + new Date().toLocaleString('es-CL') + '\n' +
-    '      </div>\n' +
-    '    </div>\n' +
-    '  ';
+      '      </table>\n' +
+      '\n' +
+      (sesion ? '      <div style="margin-top:20px; border-top:2px solid #1a3a5c; padding-top:12px;">\n' +
+      '        <h4 style="color:#1a3a5c; font-size:1rem; margin-bottom:8px;">Contenido de la Inducción</h4>\n' +
+      '        <p style="font-size:0.85rem; line-height:1.5; white-space:pre-wrap;">' + escHtml(sesion.Observaciones || 'Sin observaciones registradas.') + '</p>\n' +
+      '      </div>\n' : '') +
+      '\n' +
+      '      <p style="margin-top:12px; font-size:0.85rem;"><strong>Total participantes:</strong> ' + participantes.length + '</p>\n' +
+      '\n' +
+      '      <div style="margin-top:20px; padding:12px; border:1px solid #ccc; border-radius:4px; background:#f9f9f9; font-size:0.75rem; color:#555; line-height:1.4;">\n' +
+      '        <strong>Nota de Privacidad:</strong> En conformidad a la Ley N° 21.719 sobre Protección de Datos Personales, la columna de RUT se encuentra limitada a sus primeros 4 dígitos y el Correo Electrónico ha sido parcialmente enmascarado en este reporte de acceso público para resguardar la confidencialidad de los funcionarios.\n' +
+      '      </div>\n' +
+      '\n' +
+      '      <div style="text-align:center; margin-top:24px; font-size:0.7rem; color:#999;">\n' +
+      '        Documento generado electrónicamente el ' + new Date().toLocaleString('es-CL') + '\n' +
+      '      </div>\n' +
+      '    </div>\n' +
+      '  ';
 
   document.getElementById('printArea').innerHTML = html;
   window.print();
@@ -1565,23 +1553,16 @@ function cargarConfig() {
     var prev = document.getElementById('cfgLogoPreview');
     if (prev) prev.innerHTML = '<img src="' + cfg.logo + '" style="max-height:60px; border:1px solid #dce1e8; border-radius:4px; padding:2px;" alt="Logo">';
   }
-  // Mostrar preview de la firma
-  if (cfg.firmaCapacitador) {
-    var prev = document.getElementById('cfgFirmaPreview');
-    if (prev) prev.innerHTML = '<img src="' + cfg.firmaCapacitador + '" style="max-height:50px; border:1px solid #dce1e8; border-radius:4px; padding:2px;" alt="Firma">';
-  }
 }
 
 function guardarConfig() {
-  var prevCfg = obtenerConfig();
   var cfg = {
     nombreMunicipio: document.getElementById('cfgNombreMunicipio').value.trim(),
     tituloActa: document.getElementById('cfgTituloActa').value.trim(),
     subtituloActa: document.getElementById('cfgSubtituloActa').value.trim(),
     logo: document.getElementById('cfgLogo').value.trim(),
     tituloListado: document.getElementById('cfgTituloListado').value.trim(),
-    declaracion: document.getElementById('cfgDeclaracion').value.trim(),
-    firmaCapacitador: prevCfg.firmaCapacitador || ''
+    declaracion: document.getElementById('cfgDeclaracion').value.trim()
   };
 
   localStorage.setItem('cap_config_sistema', JSON.stringify(cfg));
@@ -1628,31 +1609,6 @@ function procesarLogoImagen(event) {
     prev.innerHTML = '<img src="' + dataUrl + '" style="max-height:60px; border:1px solid #dce1e8; border-radius:4px; padding:2px;" alt="Logo">';
     // Guardar automáticamente
     guardarConfig();
-  };
-  reader.readAsDataURL(file);
-}
-
-function procesarFirmaImagen(event) {
-  var file = event.target.files[0];
-  if (!file) return;
-  if (file.size > 1024 * 1024) {
-    alert('La imagen es muy grande. Máximo 1 MB.');
-    return;
-  }
-  var reader = new FileReader();
-  reader.onload = function (e) {
-    var dataUrl = e.target.result;
-    var prev = document.getElementById('cfgFirmaPreview');
-    if (prev) prev.innerHTML = '<img src="' + dataUrl + '" style="max-height:50px; border:1px solid #dce1e8; border-radius:4px; padding:2px;" alt="Firma">';
-    // Guardar en localStorage
-    var cfg = obtenerConfig();
-    cfg.firmaCapacitador = dataUrl;
-    localStorage.setItem('cap_config_sistema', JSON.stringify(cfg));
-    var msg = document.getElementById('msgAjustes');
-    if (msg) {
-      msg.className = 'msg success';
-      msg.textContent = '✅ Firma del capacitador guardada.';
-    }
   };
   reader.readAsDataURL(file);
 }
@@ -1754,6 +1710,35 @@ function escHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function enmascararRUT(rut) {
+  if (!rut) return '';
+  var dashIdx = rut.lastIndexOf('-');
+  if (dashIdx < 0) return rut;
+  var num = rut.substring(0, dashIdx).replace(/\./g, '');
+  if (num.length <= 4) return rut;
+  var visible = num.substring(0, 4);
+  var masked = '';
+  for (var i = 4; i < num.length; i++) masked += 'x';
+  return visible + masked + '-x';
+}
+
+function enmascararEmail(email) {
+  if (!email) return '';
+  var idx = email.indexOf('@');
+  if (idx < 0) return email;
+  var name = email.substring(0, idx);
+  var domain = email.substring(idx);
+  if (name.length <= 3) {
+    var masked = '';
+    for (var i = 0; i < name.length; i++) masked += '*';
+    return masked + domain;
+  }
+  var visible = name.substring(0, 3);
+  var masked = '';
+  for (var i = 3; i < name.length; i++) masked += '*';
+  return visible + masked + domain;
 }
 
 function limpiarStorage() {
