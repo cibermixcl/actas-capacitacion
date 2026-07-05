@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro Capacitaciones - Transparencia Activa</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+</script>
+<style>
+:root {
+  --primary: #1a3a5c;
+  --primary-light: #2d6da8;
+  --primary-dark: #0f1f33;
+  --accent: #e8c34a;
+  --accent-light: #f0d66e;
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --text: #2c3e50;
+  --text-light: #6c7a89;
+  --success: #27ae60;
+  --error: #e74c3c;
+  --warning: #f39c12;
+  --border: #dce1e8;
+  --radius: 10px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: #fff;
+  padding: 30px;
+  border-radius: var(--radius);
+  text-align: center;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+
+.header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.5px; }
+.header h2 { font-size: 1rem; font-weight: 400; opacity: 0.9; margin-top: 4px; }
+.header .sub { font-size: 0.85rem; opacity: 0.7; margin-top: 8px; }
+.header .shield { font-size: 2.5rem; margin-bottom: 8px; }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 6px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  min-width: 100px;
+  text-align: center;
+}
+
+.tab-btn:hover { background: #f0f4f8; color: var(--primary); }
+.tab-btn.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(26,58,92,0.3);
+}
+
+.tab-btn.admin-only {
+  display: none;
+}
+
+.is-admin .tab-btn.admin-only {
+  display: block;
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.card h3 {
+  font-size: 1.15rem;
+  color: var(--primary);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-grid .full { grid-column: 1 / -1; }
+
+.form-group { margin-bottom: 4px; }
+.form-group label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border 0.2s;
+  background: #fafbfc;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(45,109,168,0.1);
+}
+
+.form-group textarea { resize: vertical; min-height: 70px; }
+
+.checkbox-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.checkbox-item:hover { background: #f0f4f8; }
+
+.checkbox-item input[type="checkbox"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-light);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.checkbox-item label {
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.declaration-box {
+  background: #f8f9fa;
+  border-left: 4px solid var(--primary-light);
+  padding: 16px;
+  border-radius: 6px;
+  margin: 16px 0;
+}
+
+.declaration-box label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.declaration-box input[type="checkbox"] {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,58,92,0.3); }
+
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #219a52; transform: translateY(-1px); }
+
+.btn-warning { background: var(--warning); color: #fff; }
+.btn-warning:hover { background: #d68910; transform: translateY(-1px); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+.btn-outline:hover { background: #f0f4f8; }
+
+.btn-danger { background: var(--error); color: #fff; }
+.btn-danger:hover { background: #c0392b; }
+
+.btn-sm { padding: 7px 14px; font-size: 0.82rem; }
+
+.msg {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin: 12px 0;
+  font-size: 0.88rem;
+  display: none;
+}
+
+.msg.success { display: block; background: #eafaf1; color: #1e8449; border-left: 4px solid var(--success); }
+.msg.error { display: block; background: #fdedec; color: #c0392b; border-left: 4px solid var(--error); }
+.msg.info { display: block; background: #eaf2fa; color: var(--primary); border-left: 4px solid var(--primary-light); }
+
+.session-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--primary-dark);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  margin: 8px 0;
+}
+
+.session-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin: 12px 0;
+  font-size: 0.88rem;
+}
+
+.session-info strong { color: var(--primary); }
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th {
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+tr:hover td { background: #f8fafc; }
+
+.actions-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+  align-items: center;
+}
+
+.actions-bar select {
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  background: #fff;
+  flex: 1;
+  min-width: 200px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-light);
+}
+
+.empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state p { font-size: 0.95rem; }
+
+.admin-login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.admin-login-box {
+  background: #fff;
+  padding: 32px;
+  border-radius: var(--radius);
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.admin-login-box h3 { margin-bottom: 16px; border: none; }
+.admin-login-box input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.admin-login-box input:focus { border-color: var(--primary-light); }
+
+.admin-bar {
+  background: var(--primary-dark);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  margin-bottom: 16px;
+}
+
+.admin-bar .btn { background: rgba(255,255,255,0.15); color: #fff; }
+.admin-bar .btn:hover { background: rgba(255,255,255,0.25); }
+
+.loading {
+  text-align: center;
+  padding: 30px;
+  color: var(--text-light);
+}
+.loading .spinner {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .container { padding: 12px; }
+  .header { padding: 20px 16px; }
+  .header h1 { font-size: 1.2rem; }
+  .card { padding: 18px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .checkbox-group { grid-template-columns: 1fr; }
+  .tabs { padding: 4px; }
+  .tab-btn { padding: 10px 8px; font-size: 0.8rem; min-width: 70px; }
+  .session-info { grid-template-columns: 1fr; }
+  .actions-bar { flex-direction: column; }
+  .actions-bar select { width: 100%; min-width: auto; }
+}
+
+/* ===== PRINT STYLES (Acta / Reporte) ===== */
+#printArea {
+  display: none;
+}
+@media print {
+  body * { visibility: hidden; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea {
+    display: block !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    padding: 0;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="shield">🏛</div>
+    <h1>Municipalidad de Catemu</h1>
+    <h2>Sistema de Registro de Capacitaciones</h2>
+    <p class="sub">Transparencia Activa — Resolución CPLT N°80</p>
+  </header>
+
+  <!-- TABS -->
+  <nav class="tabs" id="mainTabs">
+    <button class="tab-btn admin-only" data-tab="configurar" onclick="switchTab('configurar')">⚙ Configurar</button>
+    <button class="tab-btn active" data-tab="firmar" onclick="switchTab('firmar')">✍ Firmar</button>
+    <button class="tab-btn admin-only" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn admin-only" data-tab="reportes" onclick="switchTab('reportes')">📄 Reportes</button>
+  </nav>
+
+  <!-- ADMIN BAR (visible when logged in) -->
+  <div class="admin-bar" id="adminBar" style="display:none">
+    <span>🔑 Modo Administrador</span>
+    <button class="btn btn-sm" onclick="logoutAdmin()">Cerrar sesión</button>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- TAB 1: CONFIGURAR SESIÓN -->
+  <!-- ============================================================ -->
+  <section id="tab-configurar" class="tab-content card">
+    <h3>⚙ Configurar Capacitación / Inducción</h3>
+    <p style="font-size:0.88rem; color:var(--text-light); margin-bottom:16px;">
+      Completa los datos de la capacitación. Al guardar se generará un <strong>código de sesión</strong>
+      que compartirás con los participantes para que registren su asistencia.
+    </p>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Capacitador *</label>
+        <input type="text" id="capCapacitador" placeholder="Tu nombre completo" required>
+      </div>
+      <div class="form-group">
+        <label>Fecha *</label>
+        <input type="date" id="capFecha" required>
+      </div>
+      <div class="form-group full">
+        <label>Unidad / Departamento a capacitar *</label>
+        <input type="text" id="capUnidad" placeholder="Ej: Departamento de Obras, Dirección de Administración..." required>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:12px;">
+      <label style="margin-bottom:8px;">Temas abordados (Res. CPLT N°80) *</label>
+      <div class="checkbox-group" id="temasContainer">
+        <div class="checkbox-item">
+          <input type="checkbox" id="t1" value="Actos y resoluciones con efectos sobre terceros">
+          <label for="t1">1. Actos y resoluciones</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t2" value="Estructura orgánica">
+          <label for="t2">2. Estructura orgánica</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t3" value="Dotaciones de personal">
+          <label for="t3">3. Dotaciones de personal</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t4" value="Compras y adquisiciones">
+          <label for="t4">4. Compras y adquisiciones</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t5" value="Transferencias">
+          <label for="t5">5. Transferencias</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t6" value="Presupuesto">
+          <label for="t6">6. Presupuesto</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t7" value="Auditorías">
+          <label for="t7">7. Auditorías</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t8" value="Trámites">
+          <label for="t8">8. Trámites</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t9" value="Participación ciudadana">
+          <label for="t9">9. Participación ciudadana</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="t10" value="Información adicional">
+          <label for="t10">10. Información adicional</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:8px;">
+      <label>Observaciones</label>
+      <textarea id="capObservaciones" placeholder="Comentarios adicionales sobre la capacitación..."></textarea>
+    </div>
+
+    <button class="btn btn-primary" onclick="crearSesion()" id="btnGuardarSesion" style="margin-top:4px;">
+      🔒 Guardar y generar código de sesión
+    </button>
+
+    <div id="msgConfigurar" class="msg"></div>
+
+    <div id="resultadoSesion" style="display:none; margin-top:16px; padding:20px; background:#f8f9fa; border-radius:8px; text-align:center;">
+      <p style="font-size:0.9rem; color:var(--text-light); margin-bottom:4px;">✅ Sesión creada exitosamente</p>
+      <p style="font-weight:600;">Comparte este código con los participantes:</p>
+      <div class="session-badge" id="codigoSesion"></div>
+      <p style="font-size:0.82rem; color:var(--text-light); margin-top:8px;">
+        Los participantes deben ingresar este código en la pestaña <strong>"Firmar"</strong> para registrarse.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 2: FIRMAR (PARTICIPANTE) -->
+  <!-- ============================================================ -->
+  <section id="tab-firmar" class="tab-content active card">
+    <h3>✍ Registro de Participación</h3>
+    <p style="font-size:0.88rem; color:var(--text-light); margin-bottom:16px;">
+      Ingresa el código de sesión entregado por el capacitador para registrarte.
+    </p>
+
+    <!-- Session code lookup -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:16px;">
+      <div class="form-group" style="flex:1; min-width:200px; margin:0;">
+        <label>Código de sesión *</label>
+        <input type="text" id="codigoSesionInput" placeholder="Ej: SES-20250704-001" style="text-transform:uppercase;">
+      </div>
+      <button class="btn btn-primary" onclick="buscarSesion()">🔍 Buscar sesión</button>
+    </div>
+
+    <div id="msgBuscarSesion" class="msg"></div>
+
+    <!-- Session details (shown after code is found) -->
+    <div id="detalleSesion" style="display:none;">
+      <div style="background:#eaf2fa; padding:12px 16px; border-radius:6px; font-size:0.85rem; margin-bottom:16px;">
+        <strong>Capacitación:</strong> <span id="detCapacitador"></span><br>
+        <strong>Fecha:</strong> <span id="detFecha"></span><br>
+        <strong>Unidad:</strong> <span id="detUnidad"></span>
+        <div style="margin-top:6px;"><strong>Temas:</strong> <span id="detTemas" style="font-size:0.82rem;"></span></div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
+
+      <h4 style="font-size:1rem; color:var(--primary); margin-bottom:16px;">Tus datos</h4>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre completo *</label>
+          <input type="text" id="parNombre" placeholder="Ej: Juan Pérez González" required>
+        </div>
+        <div class="form-group">
+          <label>RUT *</label>
+          <input type="text" id="parRut" placeholder="Ej: 12.345.678-9" required>
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" id="parEmail" placeholder="Ej: juan@catemu.cl" required>
+        </div>
+        <div class="form-group">
+          <label>Unidad / Departamento *</label>
+          <input type="text" id="parUnidad" placeholder="Ej: Departamento de Obras" required>
+        </div>
+        <div class="form-group full">
+          <label>Cargo *</label>
+          <input type="text" id="parCargo" placeholder="Ej: Encargado de transparencia" required>
+        </div>
+      </div>
+
+      <div class="declaration-box">
+        <label>
+          <input type="checkbox" id="parDeclaracion">
+          <span>
+            <strong>Declaración:</strong> Declaro que he recibido capacitación / inducción en los temas
+            señalados según la <strong>Resolución CPLT N°80</strong>, y he sido orientado en los
+            ítems de información correspondientes a mi departamento. Acepto que este registro
+            constituye mi firma electrónica y validación de la capacitación recibida.
+          </span>
+        </label>
+      </div>
+
+      <button class="btn btn-success" onclick="registrarParticipante()" id="btnFirmar">
+        ✍ Firmar y enviar
+      </button>
+
+      <div id="msgFirmar" class="msg"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 3: DASHBOARD -->
+  <!-- ============================================================ -->
+  <section id="tab-dashboard" class="tab-content card">
+    <h3>📊 Dashboard de Participantes</h3>
+
+    <div class="actions-bar">
+      <select id="filtroSesionDash" onchange="cargarDashboard()">
+        <option value="todas">Todas las sesiones</option>
+      </select>
+      <button class="btn btn-success btn-sm" onclick="exportarExcel()">📥 Exportar Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="cargarDashboard()">🔄 Refrescar</button>
+      <button class="btn btn-danger btn-sm" onclick="limpiarStorage()">🗑 Limpiar caché</button>
+    </div>
+
+    <div id="dashboardContent">
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <p>Cargando datos...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 4: REPORTES -->
+  <!-- ============================================================ -->
+  <section id="tab-reportes" class="tab-content card">
+    <h3>📄 Generar Reporte Individual</h3>
+    <p style="font-size:0.88rem; color:var(--text-light); margin-bottom:12px;">
+      Selecciona un participante para generar su acta / certificado de capacitación imprimible.
+    </p>
+
+    <div class="actions-bar">
+      <select id="filtroSesionReporte" onchange="cargarParticipantesReporte()">
+        <option value="todas">Todas las sesiones</option>
+      </select>
+      <select id="filtroParticipante" style="flex:2;">
+        <option value="">— Selecciona un participante —</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="generarReporte()">📄 Ver reporte</button>
+    </div>
+
+    <div id="reportePreview" style="display:none; margin-top:16px;">
+      <div style="background:#f8f9fa; padding:16px; border-radius:6px;">
+        <p style="font-size:0.88rem; color:var(--text-light); margin-bottom:8px;">
+          Previsualización del acta. Haz clic en "Imprimir / PDF" para guardar como PDF.
+        </p>
+        <button class="btn btn-warning btn-sm" onclick="imprimirReporte()">🖨 Imprimir / Guardar PDF</button>
+      </div>
+      <div id="reporteContenido" style="margin-top:16px; border:1px solid var(--border); border-radius:6px; padding:24px; background:#fff;"></div>
+    </div>
+
+    <div id="msgReportes" class="msg"></div>
+  </section>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- PRINT AREA (hidden, shown only for printing) -->
+<!-- ============================================================ -->
+<div id="printArea"></div>
+
+<!-- ============================================================ -->
+<!-- ADMIN LOGIN OVERLAY -->
+<!-- ============================================================ -->
+<div id="adminLoginOverlay" class="admin-login-overlay">
+  <div class="admin-login-box">
+    <div style="font-size:2.5rem; margin-bottom:8px;">🔐</div>
+    <h3 style="margin-bottom:4px;">Acceso Administrador</h3>
+    <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:16px;">
+      Solo el capacitador puede configurar sesiones y ver el dashboard.
+    </p>
+    <input type="password" id="adminPassInput" placeholder="Contraseña" onkeydown="if(event.key==='Enter')loginAdmin()">
+    <button class="btn btn-primary" onclick="loginAdmin()" style="width:100%; justify-content:center;">Ingresar</button>
+    <button class="btn btn-outline btn-sm" onclick="cerrarLoginAdmin()" style="width:100%; justify-content:center; margin-top:8px;">Soy participante — solo quiero firmar</button>
+    <div id="msgAdminLogin" class="msg" style="margin-top:8px;"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+const CONFIG = {
+  // ★ CAMBIA ESTA URL por la que obtienes al publicar el Apps Script
+  API_URL: 'https://script.google.com/macros/s/AKfycbw6O-KaEoIv8GVjnmAJgdVxn5J0T8TUwDSFppgzXbyxaKvyGOWgC7mqELiYRAmEiUyHtw/exec',
+
+  // ★ Contraseña para modo administrador
+  ADMIN_PASSWORD: 'catemu2025',
+
+  // Tema por defecto
+  DEFAULT_THEME: 'transparencia'
+};
+
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+let state = {
+  isAdmin: false,
+  currentTab: 'firmar',
+  sessionCodeActivo: null,
+  participantes: [],
+  sesiones: [],
+  cacheKey: 'cap_cache_sesiones'
+};
+
+/* ============================================================
+   INICIALIZACIÓN
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', function () {
+  // Fecha por defecto
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('capFecha').value = hoy;
+
+  // Cargar sesiones del caché
+  const cached = localStorage.getItem(state.cacheKey);
+  if (cached) {
+    try {
+      state.sesiones = JSON.parse(cached);
+    } catch (e) { state.sesiones = []; }
+  }
+});
+
+/* ============================================================
+   ADMIN LOGIN
+   ============================================================ */
+function loginAdmin() {
+  const pass = document.getElementById('adminPassInput').value;
+  const msg = document.getElementById('msgAdminLogin');
+
+  if (pass === CONFIG.ADMIN_PASSWORD) {
+    state.isAdmin = true;
+    document.getElementById('adminLoginOverlay').style.display = 'none';
+    document.getElementById('adminBar').style.display = 'flex';
+    document.getElementById('mainTabs').classList.add('is-admin');
+    msg.className = 'msg';
+    switchTab('configurar');
+    cargarSesionesSelect();
+  } else {
+    msg.className = 'msg error';
+    msg.textContent = 'Contraseña incorrecta.';
+  }
+}
+
+function cerrarLoginAdmin() {
+  document.getElementById('adminLoginOverlay').style.display = 'none';
+}
+
+function logoutAdmin() {
+  state.isAdmin = false;
+  document.getElementById('adminBar').style.display = 'none';
+  document.getElementById('mainTabs').classList.remove('is-admin');
+  switchTab('firmar');
+}
+
+function mostrarLoginAdmin() {
+  document.getElementById('adminLoginOverlay').style.display = 'flex';
+  document.getElementById('adminPassInput').value = '';
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+function switchTab(tabId) {
+  if (!state.isAdmin && (tabId === 'configurar' || tabId === 'dashboard' || tabId === 'reportes')) {
+    mostrarLoginAdmin();
+    return;
+  }
+  state.currentTab = tabId;
+
+  document.querySelectorAll('.tab-content').forEach(function (el) {
+    el.classList.remove('active');
+  });
+  document.getElementById('tab-' + tabId).classList.add('active');
+
+  document.querySelectorAll('.tab-btn').forEach(function (el) {
+    el.classList.remove('active');
+    if (el.dataset.tab === tabId) el.classList.add('active');
+  });
+
+  // Cargar datos según tab
+  if (tabId === 'dashboard') {
+    cargarDashboard();
+  } else if (tabId === 'reportes') {
+    cargarSesionesSelectReporte();
+  }
+}
+
+/* ============================================================
+   CREAR SESIÓN (Admin)
+   ============================================================ */
+async function crearSesion() {
+  const capacitador = document.getElementById('capCapacitador').value.trim();
+  const fecha = document.getElementById('capFecha').value;
+  const unidad = document.getElementById('capUnidad').value.trim();
+  const observaciones = document.getElementById('capObservaciones').value.trim();
+
+  const temas = [];
+  document.querySelectorAll('#temasContainer input[type="checkbox"]:checked').forEach(function (cb) {
+    temas.push(cb.value);
+  });
+
+  if (!capacitador) return mostrarMsg('msgConfigurar', 'Ingresa tu nombre como capacitador.', 'error');
+  if (!fecha) return mostrarMsg('msgConfigurar', 'Selecciona la fecha.', 'error');
+  if (!unidad) return mostrarMsg('msgConfigurar', 'Indica la unidad a capacitar.', 'error');
+  if (temas.length === 0) return mostrarMsg('msgConfigurar', 'Selecciona al menos un tema.', 'error');
+
+  const btn = document.getElementById('btnGuardarSesion');
+  btn.disabled = true;
+  btn.textContent = '⏳ Guardando...';
+  mostrarMsg('msgConfigurar', '', '');
+
+  try {
+    const payload = {
+      action: 'crearSesion',
+      capacitador: capacitador,
+      fecha: fecha,
+      unidad: unidad,
+      temas: temas,
+      observaciones: observaciones
+    };
+
+    const data = await llamarAPI(payload);
+
+    if (data.success) {
+      const codigo = data.sessionCode;
+      document.getElementById('codigoSesion').textContent = codigo;
+      document.getElementById('resultadoSesion').style.display = 'block';
+      mostrarMsg('msgConfigurar', 'Sesión creada exitosamente. Código: ' + codigo, 'success');
+
+      // Limpiar formulario
+      document.getElementById('capCapacitador').value = '';
+      document.getElementById('capUnidad').value = '';
+      document.getElementById('capObservaciones').value = '';
+      document.querySelectorAll('#temasContainer input[type="checkbox"]').forEach(function (cb) { cb.checked = false; });
+
+      // Actualizar listado de sesiones
+      await cargarSesionesSelect();
+      cargarSesionesSelectReporte();
+    } else {
+      mostrarMsg('msgConfigurar', 'Error: ' + (data.error || 'No se pudo crear la sesión.'), 'error');
+    }
+  } catch (err) {
+    mostrarMsg('msgConfigurar', 'Error de conexión: ' + err.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🔒 Guardar y generar código de sesión';
+}
+
+/* ============================================================
+   BUSCAR SESIÓN (Participante)
+   ============================================================ */
+async function buscarSesion() {
+  const codigo = document.getElementById('codigoSesionInput').value.trim().toUpperCase();
+  const msg = document.getElementById('msgBuscarSesion');
+
+  if (!codigo) {
+    mostrarMsg('msgBuscarSesion', 'Ingresa el código de sesión.', 'error');
+    return;
+  }
+
+  mostrarMsg('msgBuscarSesion', 'Buscando sesión...', 'info');
+  document.getElementById('detalleSesion').style.display = 'none';
+
+  try {
+    // Buscar en caché primero
+    let sesion = null;
+    const cached = localStorage.getItem(state.cacheKey);
+    if (cached) {
+      const sesiones = JSON.parse(cached);
+      sesion = sesiones.find(function (s) { return s.SessionCode === codigo; });
+    }
+
+    // Si no está en caché, buscar en API
+    if (!sesion && CONFIG.API_URL !== 'AQUI_VA_LA_URL_DE_TU_APPS_SCRIPT') {
+      const data = await llamarAPI(null, 'obtenerSesion&sessionCode=' + encodeURIComponent(codigo));
+      if (data.success && data.sesion) {
+        sesion = data.sesion;
+      }
+    }
+
+    if (!sesion) {
+      mostrarMsg('msgBuscarSesion', 'Código de sesión no encontrado. Verifica con el capacitador.', 'error');
+      return;
+    }
+
+    // Mostrar detalles de la sesión
+    state.sessionCodeActivo = codigo;
+    document.getElementById('detCapacitador').textContent = sesion.Capacitador;
+    document.getElementById('detFecha').textContent = formatearFechaStr(sesion.Fecha);
+    document.getElementById('detUnidad').textContent = sesion.Unidad;
+    document.getElementById('detTemas').textContent = sesion.Temas || 'No especificados';
+
+    document.getElementById('detalleSesion').style.display = 'block';
+    mostrarMsg('msgBuscarSesion', 'Sesión encontrada. Completa tus datos para firmar.', 'success');
+
+    // Scroll al formulario
+    document.getElementById('detalleSesion').scrollIntoView({ behavior: 'smooth' });
+
+  } catch (err) {
+    mostrarMsg('msgBuscarSesion', 'Error: ' + err.message, 'error');
+  }
+}
+
+/* ============================================================
+   REGISTRAR PARTICIPANTE
+   ============================================================ */
+async function registrarParticipante() {
+  const nombre = document.getElementById('parNombre').value.trim();
+  const rut = document.getElementById('parRut').value.trim();
+  const email = document.getElementById('parEmail').value.trim();
+  const unidad = document.getElementById('parUnidad').value.trim();
+  const cargo = document.getElementById('parCargo').value.trim();
+  const declaracion = document.getElementById('parDeclaracion').checked;
+
+  const msg = document.getElementById('msgFirmar');
+
+  if (!nombre) return mostrarMsg('msgFirmar', 'Ingresa tu nombre completo.', 'error');
+  if (!rut) return mostrarMsg('msgFirmar', 'Ingresa tu RUT.', 'error');
+  if (!validarRUT(rut)) return mostrarMsg('msgFirmar', 'RUT inválido. Formato esperado: 12.345.678-9', 'error');
+  if (!email) return mostrarMsg('msgFirmar', 'Ingresa tu email.', 'error');
+  if (!email.includes('@')) return mostrarMsg('msgFirmar', 'Email inválido.', 'error');
+  if (!unidad) return mostrarMsg('msgFirmar', 'Ingresa tu unidad/departamento.', 'error');
+  if (!cargo) return mostrarMsg('msgFirmar', 'Ingresa tu cargo.', 'error');
+  if (!declaracion) return mostrarMsg('msgFirmar', 'Debes aceptar la declaración para firmar.', 'error');
+
+  const btn = document.getElementById('btnFirmar');
+  btn.disabled = true;
+  btn.textContent = '⏳ Enviando...';
+  mostrarMsg('msgFirmar', '', '');
+
+  try {
+    const payload = {
+      action: 'registrarParticipante',
+      sessionCode: state.sessionCodeActivo,
+      nombre: nombre,
+      rut: rut,
+      email: email,
+      unidad: unidad,
+      cargo: cargo,
+      declaracion: 'Si'
+    };
+
+    if (CONFIG.API_URL !== 'AQUI_VA_LA_URL_DE_TU_APPS_SCRIPT') {
+      const data = await llamarAPI(payload);
+      if (!data.success) {
+        mostrarMsg('msgFirmar', 'Error al registrar: ' + (data.error || 'Desconocido'), 'error');
+        btn.disabled = false;
+        btn.textContent = '✍ Firmar y enviar';
+        return;
+      }
+    }
+
+    // Éxito
+    mostrarMsg('msgFirmar',
+      '✅ ¡Registro exitoso! ' + nombre + ', tu participación ha sido registrada correctamente.',
+      'success');
+
+    // Limpiar formulario
+    document.getElementById('parNombre').value = '';
+    document.getElementById('parRut').value = '';
+    document.getElementById('parEmail').value = '';
+    document.getElementById('parUnidad').value = '';
+    document.getElementById('parCargo').value = '';
+    document.getElementById('parDeclaracion').checked = false;
+
+    // Si hay API, actualizar dashboard
+    if (state.isAdmin) cargarDashboard();
+
+  } catch (err) {
+    mostrarMsg('msgFirmar', 'Error: ' + err.message + '. Tus datos no se perdieron, intenta de nuevo.', 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✍ Firmar y enviar';
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+async function cargarDashboard() {
+  const container = document.getElementById('dashboardContent');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando datos...</p></div>';
+
+  try {
+    const filtro = document.getElementById('filtroSesionDash').value;
+    let participantes = [];
+
+    if (CONFIG.API_URL !== 'AQUI_VA_LA_URL_DE_TU_APPS_SCRIPT') {
+      const data = await llamarAPI(null, 'obtenerParticipantes&sessionCode=' + encodeURIComponent(filtro));
+      if (data.success && Array.isArray(data.participantes)) {
+        participantes = data.participantes;
+      }
+    } else {
+      participantes = [];
+    }
+
+    state.participantes = participantes;
+
+    if (participantes.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No hay participantes registrados aún.</p></div>';
+      return;
+    }
+
+    let html = '<p style="margin-bottom:10px;">Total: <strong>' + participantes.length + '</strong> participantes</p>';
+    html += '<div class="table-wrap"><table>';
+    html += '<thead><tr><th>#</th><th>Nombre</th><th>RUT</th><th>Email</th><th>Unidad</th><th>Cargo</th><th>Fecha</th></tr></thead><tbody>';
+
+    participantes.forEach(function (p, i) {
+      const ts = p.Timestamp ? formatearFechaStr(p.Timestamp) : '-';
+      html += '<tr><td>' + (i + 1) + '</td><td>' + escHtml(p.Nombre || '-') + '</td><td>' + escHtml(p.RUT || '-') + '</td><td>' + escHtml(p.Email || '-') + '</td><td>' + escHtml(p.Unidad || '-') + '</td><td>' + escHtml(p.Cargo || '-') + '</td><td>' + ts + '</td></tr>';
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+
+  } catch (err) {
+    container.innerHTML = '<div class="msg error">Error al cargar datos: ' + err.message + '</div>';
+  }
+}
+
+/* ============================================================
+   EXPORTAR EXCEL
+   ============================================================ */
+function exportarExcel() {
+  if (state.participantes.length === 0) {
+    alert('No hay datos para exportar.');
+    return;
+  }
+
+  try {
+    const data = state.participantes.map(function (p, i) {
+      return {
+        '#': i + 1,
+        'SessionCode': p.SessionCode || '',
+        'Nombre': p.Nombre || '',
+        'RUT': p.RUT || '',
+        'Email': p.Email || '',
+        'Unidad': p.Unidad || '',
+        'Cargo': p.Cargo || '',
+        'Declaracion': p.Declaracion || '',
+        'Fecha/Hora': p.Timestamp ? formatearFechaStr(p.Timestamp) : ''
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Participantes');
+
+    // Auto-fit column widths
+    const cols = Object.keys(data[0] || {});
+    ws['!cols'] = cols.map(function () { return { wch: 20 }; });
+
+    const fileName = 'Registro_Capacitaciones_' + new Date().toISOString().split('T')[0] + '.xlsx';
+    XLSX.writeFile(wb, fileName);
+  } catch (err) {
+    alert('Error al generar Excel: ' + err.message);
+  }
+}
+
+/* ============================================================
+   REPORTES INDIVIDUALES
+   ============================================================ */
+async function cargarSesionesSelect() {
+  const select = document.getElementById('filtroSesionDash');
+  const valorActual = select.value;
+
+  select.innerHTML = '<option value="todas">Todas las sesiones</option>';
+
+  if (CONFIG.API_URL === 'AQUI_VA_LA_URL_DE_TU_APPS_SCRIPT') return;
+
+  try {
+    const data = await llamarAPI(null, 'obtenerTodasSesiones');
+    if (data.success && Array.isArray(data.sesiones)) {
+      state.sesiones = data.sesiones;
+      localStorage.setItem(state.cacheKey, JSON.stringify(data.sesiones));
+
+      data.sesiones.forEach(function (s) {
+        var opt = document.createElement('option');
+        opt.value = s.SessionCode;
+        opt.textContent = s.SessionCode + ' — ' + (s.Capacitador || '') + ' (' + (s.Fecha || '') + ')';
+        select.appendChild(opt);
+      });
+    }
+  } catch (e) {}
+
+  select.value = valorActual;
+}
+
+function cargarSesionesSelectReporte() {
+  const select = document.getElementById('filtroSesionReporte');
+  const valorActual = select.value;
+
+  select.innerHTML = '<option value="todas">Todas las sesiones</option>';
+
+  (state.sesiones || []).forEach(function (s) {
+    var opt = document.createElement('option');
+    opt.value = s.SessionCode;
+    opt.textContent = s.SessionCode + ' — ' + (s.Capacitador || '') + ' (' + (s.Fecha || '') + ')';
+    select.appendChild(opt);
+  });
+
+  select.value = valorActual;
+  cargarParticipantesReporte();
+}
+
+async function cargarParticipantesReporte() {
+  const select = document.getElementById('filtroParticipante');
+  const filtroSesion = document.getElementById('filtroSesionReporte').value;
+  select.innerHTML = '<option value="">— Selecciona un participante —</option>';
+
+  if (CONFIG.API_URL === 'AQUI_VA_LA_URL_DE_TU_APPS_SCRIPT') return;
+
+  try {
+    const data = await llamarAPI(null, 'obtenerParticipantes&sessionCode=' + encodeURIComponent(filtroSesion));
+    if (data.success && Array.isArray(data.participantes)) {
+      data.participantes.forEach(function (p) {
+        var opt = document.createElement('option');
+        opt.value = p.Nombre + '|' + p.RUT;
+        opt.textContent = p.Nombre + ' (' + p.RUT + ') — ' + (p.Unidad || '');
+        opt._data = p;
+        select.appendChild(opt);
+      });
+      // Store data for later use
+      select._participantes = data.participantes;
+    }
+  } catch (e) {}
+}
+
+function generarReporte() {
+  const select = document.getElementById('filtroParticipante');
+  const selectedOption = select.options[select.selectedIndex];
+  const msg = document.getElementById('msgReportes');
+
+  if (!selectedOption || !selectedOption.value) {
+    mostrarMsg('msgReportes', 'Selecciona un participante.', 'error');
+    document.getElementById('reportePreview').style.display = 'none';
+    return;
+  }
+
+  const participantes = select._participantes || [];
+  const idx = select.selectedIndex - 1;
+  const p = participantes[idx];
+
+  if (!p) {
+    mostrarMsg('msgReportes', 'Error al obtener datos del participante.', 'error');
+    return;
+  }
+
+  // Buscar datos de la sesión
+  let sesion = null;
+  (state.sesiones || []).forEach(function (s) {
+    if (s.SessionCode === p.SessionCode) sesion = s;
+  });
+
+  mostrarMsg('msgReportes', '', '');
+
+  // Generar HTML del reporte
+  const fecha = p.Timestamp ? formatearFechaStr(p.Timestamp) : new Date().toLocaleDateString('es-CL');
+  const fechaSesion = sesion ? formatearFechaStr(sesion.Fecha) : fecha;
+
+  const html = `
+    <div style="font-family:'Segoe UI',sans-serif; max-width:700px; margin:0 auto; padding:20px;">
+      <div style="text-align:center; border-bottom:3px solid #1a3a5c; padding-bottom:16px; margin-bottom:20px;">
+        <div style="font-size:2rem;">🏛</div>
+        <h2 style="color:#1a3a5c; margin:4px 0; font-size:1.3rem;">MUNICIPALIDAD DE CATEMU</h2>
+        <h3 style="color:#2d6da8; margin:4px 0; font-size:1rem; font-weight:400;">ACTA DE CAPACITACIÓN / INDUCCIÓN</h3>
+        <p style="color:#6c7a89; font-size:0.85rem;">Ley de Transparencia — Resolución CPLT N°80</p>
+      </div>
+
+      <table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:20px;">
+        <tr><td style="padding:6px 10px; font-weight:600; width:140px; border:1px solid #dce1e8;">Fecha</td>
+            <td style="padding:6px 10px; border:1px solid #dce1e8;">${fechaSesion}</td></tr>
+        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Capacitador</td>
+            <td style="padding:6px 10px; border:1px solid #dce1e8;">${sesion ? escHtml(sesion.Capacitador) : '—'}</td></tr>
+        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Unidad capacitada</td>
+            <td style="padding:6px 10px; border:1px solid #dce1e8;">${sesion ? escHtml(sesion.Unidad) : '—'}</td></tr>
+        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Participante</td>
+            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.Nombre || '')}</td></tr>
+        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">RUT</td>
+            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.RUT || '')}</td></tr>
+        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Email</td>
+            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.Email || '')}</td></tr>
+        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Unidad</td>
+            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.Unidad || '')}</td></tr>
+        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Cargo</td>
+            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.Cargo || '')}</td></tr>
+        <tr><td style="padding:6px 10px; font-weight:600; border:1px solid #dce1e8;">Código Sesión</td>
+            <td style="padding:6px 10px; border:1px solid #dce1e8;">${escHtml(p.SessionCode || '')}</td></tr>
+      </table>
+
+      <div style="margin-bottom:16px;">
+        <h4 style="color:#1a3a5c; font-size:0.95rem; margin-bottom:6px;">Temas abordados</h4>
+        <p style="font-size:0.88rem; padding:10px 14px; background:#f8f9fa; border-radius:4px;">
+          ${sesion ? escHtml(sesion.Temas || 'No especificados') : '—'}
+        </p>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <h4 style="color:#1a3a5c; font-size:0.95rem; margin-bottom:6px;">Observaciones</h4>
+        <p style="font-size:0.88rem; padding:10px 14px; background:#f8f9fa; border-radius:4px;">
+          ${sesion ? escHtml(sesion.Observaciones || 'Sin observaciones') : '—'}
+        </p>
+      </div>
+
+      <div style="background:#f0f7f0; border-left:4px solid #27ae60; padding:12px 16px; font-size:0.85rem; margin-bottom:24px;">
+        ✅ El participante declara haber recibido la capacitación / inducción en los temas señalados
+        conforme a la <strong>Resolución CPLT N°80</strong>, y haber sido orientado en los ítems de
+        información correspondientes a su departamento.
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top:40px; padding-top:20px; border-top:1px solid #dce1e8;">
+        <div style="text-align:center; flex:1;">
+          <div style="border-top:1px solid #333; width:80%; margin:0 auto 6px; padding-top:6px;">&nbsp;</div>
+          <p style="font-size:0.82rem; color:#6c7a89;">Firma Capacitador</p>
+        </div>
+        <div style="text-align:center; flex:1;">
+          <div style="border-top:1px solid #333; width:80%; margin:0 auto 6px; padding-top:6px;">&nbsp;</div>
+          <p style="font-size:0.82rem; color:#6c7a89;">Firma Participante</p>
+        </div>
+      </div>
+
+      <div style="text-align:center; margin-top:30px; font-size:0.72rem; color:#aaa;">
+        Documento generado electrónicamente el ${new Date().toLocaleString('es-CL')} — Sistema de Registro de Capacitaciones
+      </div>
+    </div>
+  `;
+
+  document.getElementById('reporteContenido').innerHTML = html;
+  document.getElementById('reportePreview').style.display = 'block';
+  document.getElementById('reportePreview').scrollIntoView({ behavior: 'smooth' });
+}
+
+function imprimirReporte() {
+  const contenido = document.getElementById('reporteContenido').innerHTML;
+  const printArea = document.getElementById('printArea');
+  printArea.innerHTML = contenido;
+  window.print();
+}
+
+/* ============================================================
+   LLAMADA A LA API (Google Apps Script)
+   ============================================================ */
+async function llamarAPI(payload, getParams) {
+  if (CONFIG.API_URL === 'AQUI_VA_LA_URL_DE_TU_APPS_SCRIPT') {
+    throw new Error('API_URL no configurada. Sigue las instrucciones para conectar con Google Sheets.');
+  }
+
+  let url = CONFIG.API_URL;
+
+  if (getParams) {
+    url += '?action=' + getParams;
+    const response = await fetch(url);
+    return await response.json();
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  return await response.json();
+}
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+function mostrarMsg(id, texto, tipo) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = texto;
+  el.className = 'msg' + (tipo ? ' ' + tipo : '');
+}
+
+function validarRUT(rut) {
+  if (!rut) return false;
+  rut = rut.replace(/\./g, '').replace(/-/g, '');
+  if (rut.length < 8 || rut.length > 9) return false;
+
+  const dv = rut.slice(-1).toUpperCase();
+  const cuerpo = rut.slice(0, -1);
+
+  if (!/^\d+$/.test(cuerpo)) return false;
+
+  let suma = 0;
+  let multiplo = 2;
+  for (let i = cuerpo.length - 1; i >= 0; i--) {
+    suma += parseInt(cuerpo.charAt(i)) * multiplo;
+    multiplo = multiplo < 7 ? multiplo + 1 : 2;
+  }
+
+  const resto = suma % 11;
+  const dvCalculado = 11 - resto;
+  let dvEsperado = dvCalculado === 11 ? '0' : dvCalculado === 10 ? 'K' : String(dvCalculado);
+
+  return dv === dvEsperado;
+}
+
+function formatearFechaStr(fechaStr) {
+  if (!fechaStr) return '-';
+  try {
+    var d = new Date(fechaStr);
+    if (isNaN(d.getTime())) return fechaStr;
+    return d.toLocaleDateString('es-CL', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+  } catch (e) {
+    return fechaStr;
+  }
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function limpiarStorage() {
+  localStorage.removeItem(state.cacheKey);
+  state.sesiones = [];
+  state.participantes = [];
+  document.getElementById('dashboardContent').innerHTML =
+    '<div class="empty-state"><div class="icon">🗑</div><p>Caché limpiado. Refresca para cargar datos nuevamente.</p></div>';
+}
+</script>
+</body>
+</html>
