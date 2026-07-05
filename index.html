@@ -614,7 +614,7 @@ tr:hover td { background: #f8fafc; }
         </div>
         <div class="form-group">
           <label>RUT *</label>
-          <input type="text" id="parRut" placeholder="Ej: 12.345.678-9" required>
+          <input type="text" id="parRut" placeholder="Ej: 12.345.678-9" oninput="formatearRUT()" required>
         </div>
         <div class="form-group">
           <label>Email *</label>
@@ -1692,6 +1692,20 @@ function mostrarMsg(id, texto, tipo) {
   if (!el) return;
   el.textContent = texto;
   el.className = 'msg' + (tipo ? ' ' + tipo : '');
+}
+
+function formatearRUT() {
+  var input = document.getElementById('parRut');
+  var val = input.value.replace(/[^0-9kK]/g, '');
+  if (val.length > 9) val = val.slice(0, 9);
+  if (val.length <= 1) {
+    input.value = val.toUpperCase();
+    return;
+  }
+  var cuerpo = val.slice(0, -1);
+  var dv = val.slice(-1);
+  cuerpo = parseInt(cuerpo, 10).toLocaleString('es-CL');
+  input.value = cuerpo + '-' + dv.toUpperCase();
 }
 
 function validarRUT(rut) {
