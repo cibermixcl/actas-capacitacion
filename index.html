@@ -1299,7 +1299,7 @@ function generarReporteHtml(p, sesion) {
   if (!p) return '';
   const cfg = obtenerConfig();
   const fecha = p.Timestamp ? formatearFechaStr(p.Timestamp) : new Date().toLocaleDateString('es-CL');
-  const fechaSesion = sesion ? formatearFechaStr(sesion.Fecha) : fecha;
+  const fechaSesion = sesion ? formatearFechaSolo(sesion.Fecha) : fecha;
 
   return '\n' +
     '    <div style="font-family:\'Segoe UI\',sans-serif; max-width:700px; margin:0 auto; padding:15px;">\n' +
@@ -1469,7 +1469,7 @@ function generarListadoSesion() {
 
   var cfg = obtenerConfig();
   var capacita = sesion ? (sesion.Capacitador || '—') : '—';
-  var fecha = sesion ? formatearFechaStr(sesion.Fecha) : '—';
+  var fecha = sesion ? formatearFechaSolo(sesion.Fecha) : '—';
   var unidad = sesion ? (sesion.Unidad || '—') : '—';
   var temas = sesion ? (sesion.Temas || '—') : '—';
 
@@ -1708,6 +1708,17 @@ function validarRUT(rut) {
   let dvEsperado = dvCalculado === 11 ? '0' : dvCalculado === 10 ? 'K' : String(dvCalculado);
 
   return dv === dvEsperado;
+}
+
+function formatearFechaSolo(fechaStr) {
+  if (!fechaStr) return '-';
+  try {
+    var d = new Date(fechaStr);
+    if (isNaN(d.getTime())) return fechaStr;
+    return d.toLocaleDateString('es-CL', {
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+  } catch (e) { return fechaStr; }
 }
 
 function formatearHora(valor) {
