@@ -1276,6 +1276,13 @@ async function cargarParticipantesReporte() {
 
   if (CONFIG.API_URL === 'AQUI_VA_LA_URL_DE_TU_APPS_SCRIPT') return;
 
+  // Solo cargar participantes si hay una sesión específica seleccionada
+  if (!filtroSesion || filtroSesion === 'todas') {
+    select.innerHTML = '<option value="">— Selecciona una sesión específica —</option>';
+    select._participantes = [];
+    return;
+  }
+
   try {
     const data = await llamarAPI(null, 'obtenerParticipantes&sessionCode=' + encodeURIComponent(filtroSesion));
     if (data.success && Array.isArray(data.participantes)) {
