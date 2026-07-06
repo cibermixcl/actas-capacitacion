@@ -1044,8 +1044,8 @@ async function buscarSesion() {
     state.sessionCodeActivo = codigo;
     document.getElementById('detCapacitador').textContent = sesion.Capacitador;
     document.getElementById('detFecha').textContent = formatearFechaStr(sesion.Fecha);
-    document.getElementById('detHoraInicio').textContent = formatearHora(sesion.HoraInicio);
-    document.getElementById('detHoraTermino').textContent = formatearHora(sesion.HoraTermino);
+    document.getElementById('detHoraInicio').textContent = formatearHora(sesion.HoraInicio) + ' hrs.';
+    document.getElementById('detHoraTermino').textContent = formatearHora(sesion.HoraTermino) + ' hrs.';
     document.getElementById('detUnidad').textContent = sesion.Unidad;
     document.getElementById('detTemas').textContent = sesion.Temas || 'No especificados';
 
@@ -1321,9 +1321,9 @@ function generarReporteHtml(p, sesion) {
     '        <tr><td style="padding:4px 8px; font-weight:600; width:140px; border:1px solid #dce1e8;">Fecha</td>\n' +
     '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + fechaSesion + '</td></tr>\n' +
 '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Hora inicio</td>\n' +
-'            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(formatearHora(sesion.HoraInicio)) : '—') + '</td></tr>\n' +
+'            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(formatearHora(sesion.HoraInicio) + ' hrs.') : '—') + '</td></tr>\n' +
 '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Hora término</td>\n' +
-'            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(formatearHora(sesion.HoraTermino)) : '—') + '</td></tr>\n' +
+'            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(formatearHora(sesion.HoraTermino) + ' hrs.') : '—') + '</td></tr>\n' +
     '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Capacitador</td>\n' +
     '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(sesion.Capacitador) : '—') + '</td></tr>\n' +
     '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Unidad capacitada</td>\n' +
@@ -1505,7 +1505,7 @@ function generarListadoSesion() {
     '      <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:16px;">\n' +
     '        <tr><td style="font-weight:600; width:120px; padding:3px 6px;">Capacitador:</td><td style="padding:3px 6px;">' + escHtml(capacita) + '</td></tr>\n' +
     '        <tr><td style="font-weight:600; padding:3px 6px;">Fecha:</td><td style="padding:3px 6px;">' + fecha + '</td></tr>\n' +
-    '        <tr><td style="font-weight:600; padding:3px 6px;">Horario:</td><td style="padding:3px 6px;">' + (sesion ? escHtml(formatearHora(sesion.HoraInicio) + ' — ' + formatearHora(sesion.HoraTermino)) : '—') + '</td></tr>\n' +
+    '        <tr><td style="font-weight:600; padding:3px 6px;">Horario:</td><td style="padding:3px 6px;">' + (sesion ? escHtml(formatearHora(sesion.HoraInicio) + ' hrs. — ' + formatearHora(sesion.HoraTermino) + ' hrs.') : '—') + '</td></tr>\n' +
     '        <tr><td style="font-weight:600; padding:3px 6px;">Unidad:</td><td style="padding:3px 6px;">' + escHtml(unidad) + '</td></tr>\n' +
     '        <tr><td style="font-weight:600; padding:3px 6px;">Temas:</td><td style="padding:3px 6px;">' + escHtml(temas) + '</td></tr>\n' +
     '      </table>\n' +
