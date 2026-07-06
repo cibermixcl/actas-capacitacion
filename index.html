@@ -925,7 +925,9 @@ function switchTab(tabId) {
   if (tabId === 'dashboard') {
     cargarDashboard();
   } else if (tabId === 'reportes') {
-    cargarSesionesSelectReporte();
+    cargarSesionesSelect().then(function () {
+      cargarSesionesSelectReporte();
+    });
   }
 }
 
