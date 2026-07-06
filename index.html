@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Registro Capacitaciones - Transparencia Activa</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
 </script>
@@ -843,13 +846,9 @@ document.addEventListener('DOMContentLoaded', function () {
     decLabel.innerHTML = '<strong>Declaración:</strong> ' + escHtml(cfg.declaracion);
   }
 
-  // Cargar sesiones del caché
-  const cached = localStorage.getItem(state.cacheKey);
-  if (cached) {
-    try {
-      state.sesiones = JSON.parse(cached);
-    } catch (e) { state.sesiones = []; }
-  }
+  // Limpiar caché para forzar datos frescos desde la API
+  localStorage.removeItem(state.cacheKey);
+  state.sesiones = [];
 
   // Detectar ?codigo= en la URL para auto-completar firma
   var params = new URLSearchParams(window.location.search);
@@ -1045,8 +1044,8 @@ async function buscarSesion() {
     state.sessionCodeActivo = codigo;
     document.getElementById('detCapacitador').textContent = sesion.Capacitador;
     document.getElementById('detFecha').textContent = formatearFechaStr(sesion.Fecha);
-    document.getElementById('detHoraInicio').textContent = sesion.HoraInicio || '—';
-    document.getElementById('detHoraTermino').textContent = sesion.HoraTermino || '—';
+    document.getElementById('detHoraInicio').textContent = formatearHora(sesion.HoraInicio);
+    document.getElementById('detHoraTermino').textContent = formatearHora(sesion.HoraTermino);
     document.getElementById('detUnidad').textContent = sesion.Unidad;
     document.getElementById('detTemas').textContent = sesion.Temas || 'No especificados';
 
@@ -1314,10 +1313,10 @@ function generarReporteHtml(p, sesion) {
     '      <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:12px;">\n' +
     '        <tr><td style="padding:4px 8px; font-weight:600; width:140px; border:1px solid #dce1e8;">Fecha</td>\n' +
     '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + fechaSesion + '</td></tr>\n' +
-    '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Hora inicio</td>\n' +
-    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(sesion.HoraInicio || '—') : '—') + '</td></tr>\n' +
-    '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Hora término</td>\n' +
-    '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(sesion.HoraTermino || '—') : '—') + '</td></tr>\n' +
+'        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Hora inicio</td>\n' +
+'            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(formatearHora(sesion.HoraInicio)) : '—') + '</td></tr>\n' +
+'        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Hora término</td>\n' +
+'            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(formatearHora(sesion.HoraTermino)) : '—') + '</td></tr>\n' +
     '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Capacitador</td>\n' +
     '            <td style="padding:4px 8px; border:1px solid #dce1e8;">' + (sesion ? escHtml(sesion.Capacitador) : '—') + '</td></tr>\n' +
     '        <tr><td style="padding:4px 8px; font-weight:600; border:1px solid #dce1e8;">Unidad capacitada</td>\n' +
@@ -1499,7 +1498,7 @@ function generarListadoSesion() {
     '      <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:16px;">\n' +
     '        <tr><td style="font-weight:600; width:120px; padding:3px 6px;">Capacitador:</td><td style="padding:3px 6px;">' + escHtml(capacita) + '</td></tr>\n' +
     '        <tr><td style="font-weight:600; padding:3px 6px;">Fecha:</td><td style="padding:3px 6px;">' + fecha + '</td></tr>\n' +
-    '        <tr><td style="font-weight:600; padding:3px 6px;">Horario:</td><td style="padding:3px 6px;">' + (sesion ? escHtml((sesion.HoraInicio || '—') + ' — ' + (sesion.HoraTermino || '—')) : '—') + '</td></tr>\n' +
+    '        <tr><td style="font-weight:600; padding:3px 6px;">Horario:</td><td style="padding:3px 6px;">' + (sesion ? escHtml(formatearHora(sesion.HoraInicio) + ' — ' + formatearHora(sesion.HoraTermino)) : '—') + '</td></tr>\n' +
     '        <tr><td style="font-weight:600; padding:3px 6px;">Unidad:</td><td style="padding:3px 6px;">' + escHtml(unidad) + '</td></tr>\n' +
     '        <tr><td style="font-weight:600; padding:3px 6px;">Temas:</td><td style="padding:3px 6px;">' + escHtml(temas) + '</td></tr>\n' +
     '      </table>\n' +
@@ -1709,6 +1708,16 @@ function validarRUT(rut) {
   let dvEsperado = dvCalculado === 11 ? '0' : dvCalculado === 10 ? 'K' : String(dvCalculado);
 
   return dv === dvEsperado;
+}
+
+function formatearHora(valor) {
+  if (!valor || valor === '—' || valor === '') return '—';
+  // Si viene como 1899-12-30T15:07:45.000Z, extraer solo HH:mm
+  if (typeof valor === 'string' && valor.indexOf('T') >= 0) {
+    var partes = valor.split('T')[1].split(':');
+    return partes[0] + ':' + partes[1];
+  }
+  return valor;
 }
 
 function formatearFechaStr(fechaStr) {
