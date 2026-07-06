@@ -54,7 +54,7 @@ function doGet(e) {
 function crearSesion(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = getOrCreateSheet(ss, SHEET_SESIONES,
-    ['SessionCode', 'Capacitador', 'Fecha', 'Unidad', 'Temas', 'Observaciones', 'Creado']);
+    ['SessionCode', 'Capacitador', 'Fecha', 'HoraInicio', 'HoraTermino', 'Unidad', 'Temas', 'Observaciones', 'Creado']);
 
   const now = new Date();
   const count = sheet.getLastRow();
@@ -62,7 +62,7 @@ function crearSesion(data) {
 
   const temas = Array.isArray(data.temas) ? data.temas.join('; ') : data.temas || '';
 
-  sheet.appendRow([sessionCode, data.capacitador, data.fecha, data.unidad, temas, data.observaciones, now]);
+  sheet.appendRow([sessionCode, data.capacitador, data.fecha, data.horaInicio || '', data.horaTermino || '', data.unidad, temas, data.observaciones, now]);
 
   return jsonOutput({ success: true, sessionCode: sessionCode });
 }
@@ -73,6 +73,41 @@ function registrarParticipante(data) {
     ['Timestamp', 'SessionCode', 'Nombre', 'RUT', 'Email', 'Unidad', 'Cargo', 'Declaracion']);
 
   sheet.appendRow([new Date(), data.sessionCode, data.nombre, data.rut, data.email, data.unidad, data.cargo, 'Si']);
+
+  // Enviar email de confirmación
+  try {
+    var sesionSheet = ss.getSheetByName(SHEET_SESIONES);
+    if (sesionSheet && data.email) {
+      var sesData = sesionSheet.getDataRange().getValues();
+      var sesHeaders = sesData[0];
+      var idxTemas = sesHeaders.indexOf('Temas');
+      var idxObs = sesHeaders.indexOf('Observaciones');
+      var temas = '—', observaciones = '—';
+      for (var i = 1; i < sesData.length; i++) {
+        if (sesData[i][0] === data.sessionCode) {
+          if (idxTemas >= 0) temas = sesData[i][idxTemas] || '—';
+          if (idxObs >= 0) observaciones = sesData[i][idxObs] || '—';
+          break;
+        }
+      }
+      var asunto = 'Confirmación de Registro - Capacitación / Inducción';
+      var cuerpo = 'Estimado/a ' + data.nombre + ',\n\n' +
+        'Hemos registrado su participación en la capacitación/inducción.\n\n' +
+        'Sesión: ' + data.sessionCode + '\n' +
+        'Temas: ' + temas + '\n' +
+        'Observaciones: ' + observaciones + '\n\n' +
+        'Usted ha firmado electrónicamente aceptando la declaración.\n\n' +
+        'Este es un correo automático, por favor no responder.';
+      MailApp.sendEmail({
+        to: data.email,
+        subject: asunto,
+        body: cuerpo,
+        name: 'Sistema de Capacitaciones - Municipalidad de Catemu'
+      });
+    }
+  } catch (e) {
+    // Si falla el envío de email, no interrumpe el registro
+  }
 
   return jsonOutput({ success: true });
 }
@@ -137,14 +172,50 @@ function obtenerTodasSesiones() {
   return jsonOutput({ success: true, sesiones: sesiones });
 }
 
-function getOrCreateSheet(ss, name, headers) {
+function getOrCreateSheet(ss, name, expectedHeaders) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    sheet.appendRow(headers);
+    sheet.appendRow(expectedHeaders);
     sheet.setFrozenRows(1);
+  } else if (name === SHEET_SESIONES) {
+    ensureSesionHeaders(sheet, expectedHeaders);
   }
   return sheet;
+}
+
+function ensureSesionHeaders(sheet, expectedHeaders) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow === 0) {
+    sheet.appendRow(expectedHeaders);
+    sheet.setFrozenRows(1);
+    return;
+  }
+
+  const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  let match = currentHeaders.length === expectedHeaders.length;
+  if (match) {
+    for (let i = 0; i < expectedHeaders.length; i++) {
+      if (currentHeaders[i] !== expectedHeaders[i]) { match = false; break; }
+    }
+  }
+  if (match) return;
+
+  // Migrate: insert HoraInicio and HoraTermino after Fecha (col 3)
+  if (currentHeaders.indexOf('HoraInicio') === -1) {
+    sheet.insertColumns(4);
+  }
+  if (currentHeaders.indexOf('HoraTermino') === -1) {
+    sheet.insertColumns(5);
+  }
+
+  // Write the complete header row
+  const colCount = sheet.getLastColumn();
+  if (colCount < expectedHeaders.length) {
+    sheet.insertColumns(colCount + 1, expectedHeaders.length - colCount);
+  }
+  sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]);
 }
 
 function jsonOutput(obj) {
