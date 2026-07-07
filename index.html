@@ -825,7 +825,7 @@ let state = {
   sessionCodeActivo: null,
   participantes: [],
   sesiones: [],
-  cacheKey: 'cap_cache_sesiones'
+  cacheKey: 'cap_cache_sesiones_v2'
 };
 
 /* ============================================================
@@ -1043,7 +1043,7 @@ async function buscarSesion() {
     // Mostrar detalles de la sesión
     state.sessionCodeActivo = codigo;
     document.getElementById('detCapacitador').textContent = sesion.Capacitador;
-    document.getElementById('detFecha').textContent = formatearFechaStr(sesion.Fecha);
+    document.getElementById('detFecha').textContent = formatearFechaSolo(sesion.Fecha);
     document.getElementById('detHoraInicio').textContent = formatearHora(sesion.HoraInicio) + ' hrs.';
     document.getElementById('detHoraTermino').textContent = formatearHora(sesion.HoraTermino) + ' hrs.';
     document.getElementById('detUnidad').textContent = sesion.Unidad;
@@ -1730,12 +1730,31 @@ function formatearFechaSolo(fechaStr) {
 
 function formatearHora(valor) {
   if (!valor || valor === '—' || valor === '') return '—';
-  // Si viene como 1899-12-30T15:07:45.000Z, extraer solo HH:mm
-  if (typeof valor === 'string' && valor.indexOf('T') >= 0) {
-    var partes = valor.split('T')[1].split(':');
-    return partes[0] + ':' + partes[1];
+  var str = String(valor);
+  // ISO string con T (1899-12-30T15:07:45.000Z)
+  if (str.indexOf('T') >= 0) {
+    var p = str.split('T')[1].split(':');
+    return p[0] + ':' + p[1];
   }
-  return valor;
+  // AM/PM (3:30 PM, 03:30:00 PM)
+  var m12 = str.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)/i);
+  if (m12) {
+    var h = parseInt(m12[1], 10);
+    if (m12[4].toUpperCase() === 'PM' && h !== 12) h += 12;
+    if (m12[4].toUpperCase() === 'AM' && h === 12) h = 0;
+    return String(h).padStart(2, '0') + ':' + m12[2];
+  }
+  // Solo dígitos (ej: 1530 → 15:30)
+  if (/^\d{3,4}$/.test(str)) {
+    while (str.length < 4) str = '0' + str;
+    return str.slice(0, 2) + ':' + str.slice(2);
+  }
+  // Tiene segundos HH:mm:ss → solo HH:mm
+  if (str.indexOf(':') > 0) {
+    var parts = str.split(':');
+    if (parts.length > 2) return parts[0] + ':' + parts[1];
+  }
+  return str;
 }
 
 function formatearFechaStr(fechaStr) {
